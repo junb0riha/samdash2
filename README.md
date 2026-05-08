@@ -1,22 +1,20 @@
-# SAM ETF Intelligence Dashboard
+# SAM ETF Intelligence Dashboard v2
 
-업로드한 엑셀 데이터를 기반으로 만든 GitHub Pages용 정적 대시보드입니다.
+업로드 엑셀 데이터 기반 반도체 ETF 보유현황 심층 분석 대시보드입니다.
 
-## 파일 구성
-- `index.html` : 대시보드 본문
-- `styles.css` : 화면 디자인
-- `script.js` : 차트/테이블 렌더링 로직
-- `dashboard-data.js` : 엑셀에서 추출·집계한 데이터
+## 업로드 파일
+- index.html
+- styles.css
+- script.js
+- dashboard-data.js
 
-## GitHub Pages 업로드 방법
-1. GitHub 저장소에 위 4개 파일을 업로드합니다.
-2. 저장소 Settings → Pages에서 Branch를 `main`, Folder를 `/root`로 설정합니다.
-3. 배포 주소 예: `https://계정명.github.io/저장소명/`
+위 4개 파일을 GitHub Pages 저장소 루트에 업로드하면 됩니다.
+기존 `samdashboard` 저장소를 사용할 경우 동일 파일명으로 덮어쓰기하면 기존 주소가 새 대시보드로 교체됩니다.
 
-## 데이터 요약
-- 총 세그먼트: 2,238개
-- ETF: 6개
-- 시·도: 17개
-- 시군구: 146개
-- 총 보유평가액: 5,862억원
-- 총 보유자: 61,335명
+## v2 주요 변경
+- 연령 × 성별 AUM 매트릭스 추가
+- 상품 × 연령 적합도 히트맵 추가
+- 성별 AUM/보유자 괴리 분석 추가
+- 50대+ 인컴형, 남성 고액 레버리지, 여성 대중형 확산 타겟 추가
+- TIGER 우위 도시 기반 KODEX 전환 가능 지역 산출
+- 광역별 우세 연령, 여성 보유자 비중, 50대+ AUM 비중 프로파일 추가
