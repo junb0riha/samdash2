@@ -377,12 +377,12 @@ window._charts.push(_regionAmt, _regionPerCap, _scatter, _seoulBar, _ggBar);
 // ═══════ § 8. 분포 (시·구 1인당 분포) ═══════
 const sgPerCap = CITIES.filter(c=>c.cnt>=20).map(c=>({pc:c.amt/c.cnt*100}));
 const distBins = [
-  { label:"~300만",     min:0, max:300, count:0 },
-  { label:"300~500만",  min:300, max:500, count:0 },
-  { label:"500~1,000만", min:500, max:1000, count:0 },
-  { label:"1,000~2,000만", min:1000, max:2000, count:0 },
-  { label:"2,000~3,000만", min:2000, max:3000, count:0 },
-  { label:"3,000만+",    min:3000, max:99999, count:0 },
+  { label:"~500만",     min:0, max:500, count:0 },
+  { label:"500~700만",  min:500, max:700, count:0 },
+  { label:"700~1,000만", min:700, max:1000, count:0 },
+  { label:"1,000~1,500만", min:1000, max:1500, count:0 },
+  { label:"1,500~2,500만", min:1500, max:2500, count:0 },
+  { label:"2,500만+",    min:2500, max:99999, count:0 },
 ];
 sgPerCap.forEach(c => {
   for (const b of distBins) {
@@ -506,11 +506,12 @@ document.getElementById('varianceTable').innerHTML = varianceRows.map((r,i) => {
 const REGION_AMT_MAP = {};
 REGIONS.forEach(r => REGION_AMT_MAP[r.name] = r);
 function getMapColor(amt) {
-  if (amt >= 200000) return '#1d3a8a';
-  if (amt >= 50000)  return '#2451d3';
-  if (amt >= 15000)  return '#5b8def';
-  if (amt >= 5000)   return '#93b9ff';
-  return '#cdddf7';
+  if (amt >= 100000) return '#1d3a8a';
+  if (amt >= 30000)  return '#2451d3';
+  if (amt >= 12000)  return '#5b8def';
+  if (amt >= 7000)   return '#93b9ff';
+  if (amt >= 4000)   return '#bcd0ee';
+  return '#dde7f7';
 }
 const tooltipEl = document.getElementById('mapTooltip');
 document.querySelectorAll('#koreaMap .map-region').forEach(el => {
@@ -772,6 +773,128 @@ orderedSido.forEach(rg => {
 });
 sidoAgeHTML += '</div>';
 document.getElementById('sidoAgeMatrix').innerHTML = sidoAgeHTML;
+
+// ═══════════════════════════════════════════════════════════════
+// § 20. 라이프사이클 객단가 진화 곡선
+// ═══════════════════════════════════════════════════════════════
+const malePerCapByAge = AGE_ORDER.map(age => {
+  const m = AGE_SEX[age]['남'];
+  return m.cnt > 0 ? Math.round(m.amt/m.cnt*100) : 0;
+});
+const femalePerCapByAge = AGE_ORDER.map(age => {
+  const f = AGE_SEX[age]['여'];
+  return f.cnt > 0 ? Math.round(f.amt/f.cnt*100) : 0;
+});
+
+const _lifecycle = new Chart(document.getElementById('lifecycleChart'), {
+  type:'line',
+  data:{ labels: AGE_ORDER,
+    datasets: [
+      { label:'남성 1인당', data: malePerCapByAge, borderColor:'#5b8def', backgroundColor:'rgba(91,141,239,0.15)', borderWidth:3, pointRadius:6, pointHoverRadius:9, fill:true, tension:0.35 },
+      { label:'여성 1인당', data: femalePerCapByAge, borderColor:'#f43f5e', backgroundColor:'rgba(244,63,94,0.15)', borderWidth:3, pointRadius:6, pointHoverRadius:9, fill:true, tension:0.35 },
+    ]
+  },
+  options:{ responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{position:'bottom', labels:{boxWidth:12, padding:14, font:{size:12, weight:600}}},
+      tooltip:{...buildTooltipBase(), callbacks:{label:ctx=>`  ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}만원`}}},
+    scales:{
+      x:{ grid:gridNone, ticks:{font:{size:12, weight:600}} },
+      y:{ grid:gridLight, ticks:{callback:v=>v.toLocaleString()+'만'}, title:{display:true, text:'1인당 보유액 (만원)', color:_initColors.textMuted} }
+    }}
+});
+window._charts.push(_lifecycle);
+
+// 진화 비율 동적 갱신
+const maleStart = malePerCapByAge[0] || 1;
+const maleEnd = malePerCapByAge[malePerCapByAge.length-1];
+document.getElementById('maleProg').textContent = `${(maleEnd/maleStart).toFixed(1)}배 증가`;
+const femaleStart = femalePerCapByAge[0] || 1;
+const femaleEnd = femalePerCapByAge[femalePerCapByAge.length-1];
+document.getElementById('femaleProg').textContent = `${(femaleEnd/femaleStart).toFixed(1)}배 증가`;
+
+// ═══════════════════════════════════════════════════════════════
+// § 21. 세그먼트 트리맵
+// ═══════════════════════════════════════════════════════════════
+const segments = [];
+AGE_ORDER.forEach(age => {
+  ['남','여'].forEach(sex => {
+    const d = AGE_SEX[age][sex];
+    segments.push({ name: `${age} ${sex}`, age, sex, amt: d.amt, cnt: d.cnt, pct: d.amt/TOTAL_AUM*100 });
+  });
+});
+segments.sort((a,b) => b.amt - a.amt);
+
+// 간단한 트리맵 (squarified 비스무리하게 grid + colspan/rowspan으로 흉내)
+let tmHTML = '<div class="treemap-wrap" id="tmInner">';
+const totalUnits = 30; // 10x3 그리드
+const totalAmt = segments.reduce((s,d)=>s+d.amt, 0);
+let usedCols = 0;
+const tmCells = [];
+segments.forEach(d => {
+  // 면적 비례 → cell 수
+  const cells = Math.max(1, Math.round(d.pct / 100 * totalUnits));
+  tmCells.push({...d, cells});
+});
+// 색상 매핑: 남=blue/cyan, 여=rose/pink, 강도는 객단가
+const sexColors = {
+  '남': ['#1e3a8a','#1e40af','#2451d3','#5b8def','#7da9f5','#a4c2f4'],
+  '여': ['#831843','#9d174d','#be185d','#e11d48','#f43f5e','#fb7185']
+};
+// 일단 순위대로 색상 진하게 → 옅게
+let sortedByAge = AGE_ORDER.flatMap(a => ['남','여'].map(s => ({age:a, sex:s})));
+const ageIntensity = {'20대':5, '30대':3, '40대':2, '50대':1, '60대이상':0};
+
+tmCells.forEach(d => {
+  const intensity = ageIntensity[d.age];
+  const bg = sexColors[d.sex][intensity];
+  // 면적 흉내내기 위해 grid-column span
+  const colspan = Math.min(d.cells, 10);
+  tmHTML += `<div class="tm-cell" style="background:${bg};grid-column:span ${colspan};" title="${d.name}: ${(d.amt/1000).toFixed(1)}B (${d.pct.toFixed(1)}%)">
+    <div class="seg-name">${d.age}<br>${d.sex}</div>
+    <div class="seg-val">${d.pct.toFixed(1)}%</div>
+    <div class="seg-sub">${(d.amt/1000).toFixed(1)}B · ${d.cnt.toLocaleString()}명</div>
+  </div>`;
+});
+tmHTML += '</div>';
+document.getElementById('treemapWrap').innerHTML = tmHTML;
+
+// ═══════════════════════════════════════════════════════════════
+// § 22. 종목 선호도 인덱스 (PI)
+// ═══════════════════════════════════════════════════════════════
+// 전체 평균 비중
+let totalMaleAmt = 0, totalFemaleAmt = 0;
+AGE_ORDER.forEach(age => {
+  totalMaleAmt += AGE_SEX[age]['남'].amt;
+  totalFemaleAmt += AGE_SEX[age]['여'].amt;
+});
+const totalAllAmt = totalMaleAmt + totalFemaleAmt;
+const avgMaleShare = totalMaleAmt / totalAllAmt; // 약 0.654
+const avgFemaleShare = totalFemaleAmt / totalAllAmt; // 약 0.346
+
+let prefHTML = '<div class="pref-grid head"><div class="h-c">종목</div><div class="h-c male">남성 PI</div><div class="h-c female">여성 PI</div></div>';
+PRODUCTS.forEach(p => {
+  let mAmt = 0, fAmt = 0;
+  AGE_ORDER.forEach(age => {
+    mAmt += PROD_AGE_SEX[p.key][age]['남'].amt;
+    fAmt += PROD_AGE_SEX[p.key][age]['여'].amt;
+  });
+  const t = mAmt + fAmt;
+  if (t === 0) return;
+  const mShare = mAmt / t;
+  const fShare = fAmt / t;
+  const mPI = mShare / avgMaleShare;
+  const fPI = fShare / avgFemaleShare;
+  const piClass = (v) => v >= 1.2 ? 'high' : (v <= 0.8 ? 'low' : 'mid');
+  // bar width: PI 값을 0~2 범위로 가정해 100% 기준
+  const mBar = Math.min(100, mPI * 50);
+  const fBar = Math.min(100, fPI * 50);
+  prefHTML += `<div class="pref-grid">
+    <div class="pref-name"><span class="prod-dot" style="background:${p.color}"></span>${p.name}</div>
+    <div class="pref-bar-cell"><div class="pref-bar"><div class="pref-fill male" style="width:${mBar}%"></div></div><span class="pref-idx ${piClass(mPI)}">${mPI.toFixed(2)}</span></div>
+    <div class="pref-bar-cell"><div class="pref-bar"><div class="pref-fill female" style="width:${fBar}%"></div></div><span class="pref-idx ${piClass(fPI)}">${fPI.toFixed(2)}</span></div>
+  </div>`;
+});
+document.getElementById('prefIndexBlock').innerHTML = prefHTML;
 
   } catch(e) {
     console.error('Chart rendering error:', e);

@@ -29,10 +29,10 @@
       <a href="#summary">SUMMARY</a>
       <a href="#products">PRODUCTS</a>
       <a href="#regions">REGIONS</a>
-      <a href="#cities">CITIES</a>
       <a href="#agesex">AGE×SEX</a>
       <a href="#vvip">VVIP</a>
-      <a href="#newpool">NEW POOL</a>
+      <a href="#lifecycle">LIFECYCLE</a>
+      <a href="#personas">PERSONAS</a>
       <a href="#strategy">STRATEGY</a>
     </nav>
     <div class="topbar-meta">
@@ -653,11 +653,12 @@
         <div class="map-side">
           <div class="legend-list">
             <div class="scale-title">AUM 스케일</div>
-            <div class="legend-row"><span class="sw" style="background:#1d3a8a"></span>500B+ (최상위)</div>
-            <div class="legend-row"><span class="sw" style="background:#2451d3"></span>100~500B</div>
-            <div class="legend-row"><span class="sw" style="background:#5b8def"></span>30~100B</div>
-            <div class="legend-row"><span class="sw" style="background:#93b9ff"></span>10~30B</div>
-            <div class="legend-row"><span class="sw" style="background:#cdddf7"></span>~10B</div>
+            <div class="legend-row"><span class="sw" style="background:#1d3a8a"></span>100B+ (서울·경기)</div>
+            <div class="legend-row"><span class="sw" style="background:#2451d3"></span>30~100B</div>
+            <div class="legend-row"><span class="sw" style="background:#5b8def"></span>12~30B</div>
+            <div class="legend-row"><span class="sw" style="background:#93b9ff"></span>7~12B</div>
+            <div class="legend-row"><span class="sw" style="background:#bcd0ee"></span>4~7B</div>
+            <div class="legend-row"><span class="sw" style="background:#dde7f7"></span>~4B</div>
           </div>
           <div style="font-size:12px;color:var(--text-2);line-height:1.65">
             <p style="margin-bottom:10px"><strong style="color:var(--text)">서울·경기 두 광역</strong>이 색상이 가장 진하게 표시되며, 전국 AUM의 73%를 차지하는 압도적 집중 구조를 시각적으로 확인할 수 있습니다.</p>
@@ -965,6 +966,277 @@
       </div>
     </div>
   </div>
+
+  <!-- ═══════ § 20. 라이프사이클 객단가 진화 ═══════ -->
+  <div class="section" id="lifecycle">
+    <div class="section-header">
+      <span class="section-num">§ 20</span>
+      <span class="section-title">연령별 객단가 진화 곡선</span>
+      <span class="section-desc">한 사람이 20대 → 60대로 가면서 평균 보유액이 어떻게 변하는가</span>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="left"><h3>연령대별 1인당 보유액 — 남·여 비교</h3><p>같은 시장 안에서 연령에 따라 객단가가 어떻게 진화하는지 한눈에</p></div></div>
+      <div class="chart-wrap h-400"><canvas id="lifecycleChart"></canvas></div>
+    </div>
+
+    <div class="progression-grid">
+      <div class="progression-card" style="--prog-color:#5b8def">
+        <div class="head-row"><div class="icon">M</div><div class="title">남성 객단가 진화</div></div>
+        <div class="desc">20대 458만 → 30대 893만 → 40대 1,588만 → 50대 1,833만 → 60대+ <strong>2,564만</strong>. 연령에 따라 거의 정비례로 증가. 60대까지 멈추지 않는 우상향.</div>
+        <div class="stat" id="maleProg">5.6배 증가</div>
+      </div>
+      <div class="progression-card" style="--prog-color:#f43f5e">
+        <div class="head-row"><div class="icon">F</div><div class="title">여성 객단가 진화</div></div>
+        <div class="desc">20대 185만 → 30대 278만 → 40대 552만 → 50대 653만 → 60대+ 1,134만. 남성보다 절대값은 낮지만 <strong>50대→60대 구간 큰 점프</strong>. 은퇴기 자산 정리 효과.</div>
+        <div class="stat" id="femaleProg">6.1배 증가</div>
+      </div>
+    </div>
+
+    <div class="insight-block" style="--insight-color:#5b8def">
+      <div class="label">SAM Insight · 라이프사이클 마케팅</div>
+      <h4>"이 풀은 5년 후 어디로 갈까?" — 시계열 예측이 곧 LTV 마케팅</h4>
+      <p>
+        20대 풀에 KODEX 브랜드를 노출시키면, 데이터상 <strong>30대로 진입할 때 객단가가 약 1.9배 증가</strong>합니다. 즉 지금 4,300명의 20대 여성이 보유한 80억은 5년 후 자연스럽게 240억 수준으로 성장할 가능성이 큽니다 (브랜드 retention 가정).
+        반면 50대 → 60대 구간에서는 <strong>여성이 남성보다 더 큰 폭의 객단가 점프</strong>가 일어나는데, 이는 은퇴 후 자산이 합쳐지거나 명의 이전이 일어나는 패턴일 수 있습니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>20·30대 풀의 retention 비율을 분기별 KPI로 추적 — 이 풀이 곧 미래 AUM</li>
+          <li>50대 여성 → 60대 여성 전환 구간을 <strong>"인컴 상품 추천 골든타임"</strong>으로 정의, 위클리CC 타겟팅</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 21. 세그먼트 트리맵 ═══════ -->
+  <div class="section" id="treemap">
+    <div class="section-header">
+      <span class="section-num">§ 21</span>
+      <span class="section-title">10개 세그먼트 풀 사이즈 맵</span>
+      <span class="section-desc">연령×성별 10개 셀의 시장 점유 비중 시각화</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>세그먼트별 AUM 비중 (트리맵 스타일)</h3><p>면적 = AUM 규모. 한 화면에 시장 점유 구조 한눈에.</p></div>
+      </div>
+      <div id="treemapWrap"></div>
+    </div>
+    <div class="insight-block" style="--insight-color:#fb923c">
+      <div class="label">SAM Insight · 풀 사이즈 우선순위</div>
+      <h4>50대 남성 한 풀이 시장의 23.3%를 책임진다</h4>
+      <p>
+        10개 세그먼트 중 <strong>50대 남성 한 풀이 23.3%</strong>로 압도적. 60대 남성(16.5%) + 40대 남성(17.9%) 합산하면 <strong>40·50·60대 남성 3개 풀이 시장의 57.7%</strong>를 차지합니다.
+        반대로 20대 남·여 + 30대 여성 합산은 6.4%에 불과 — <strong>현재 시장은 "중·장년 남성 시장"</strong>이라는 사실이 시각적으로 명확합니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>마케팅 예산 배분 가이드 — <strong>40·50·60대 남성 3개 풀에 60% 이상 집중</strong>이 ROI상 정당</li>
+          <li>20·30대 풀은 단기 ROI보다 <strong>5년 후 LTV 관점 투자</strong>로 명문화</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 22. 종목 선호도 인덱스 ═══════ -->
+  <div class="section" id="prefindex">
+    <div class="section-header">
+      <span class="section-num">§ 22</span>
+      <span class="section-title">성별 종목 선호도 인덱스</span>
+      <span class="section-desc">평균 대비 남성 / 여성이 더 선호하는 종목 (편향 정도 정량화)</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>종목별 선호도 인덱스 (PI)</h3><p>PI = 해당 성별의 종목 비중 / 전체 평균 비중. 1.0 = 평균, 1.5+ = 강한 선호, 0.7- = 약한 선호.</p></div>
+      </div>
+      <div id="prefIndexBlock"></div>
+    </div>
+    <div class="insight-block" style="--insight-color:#14b8a6">
+      <div class="label">SAM Insight · 선호도 편향 = 마케팅 자산</div>
+      <h4>"여성이 더 선호하는 종목"이 신규 유입 채널의 핵심 자산이다</h4>
+      <p>
+        편향이 강한 종목일수록 <strong>해당 성별 풀에 마케팅 효율이 압도적</strong>입니다. 예를 들어 KODEX AI반도체는 여성 PI가 1.27로 평균 이상 — 즉 <strong>"여성 신규 진입 게이트웨이 ETF"</strong>로 포지셔닝 가능.
+        반대로 KODEX 레버리지(남성 PI 1.27) · TIGER TOP10 레버리지(남성 PI 1.41)는 <strong>남성 액티브 풀 전용</strong>. 여성 채널 광고는 ROI가 거의 안 나오니 예산 분배에서 빠지는 게 효율적입니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>여성 친화 종목(AI반도체·TIGER 반도체) → 인스타·여성 금융 커뮤니티 우선 광고 배분</li>
+          <li>레버리지 2종 → 남성 트레이딩 채널 100% 집중 (광고비 효율 극대화)</li>
+          <li>5월 출시 위클리CC는 출시 후 1분기 PI 추적 → 어느 성별이 더 빠르게 흡수하는지 모니터링</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 23. 6대 페르소나 카드 ═══════ -->
+  <div class="section" id="personas">
+    <div class="section-header">
+      <span class="section-num">§ 23</span>
+      <span class="section-title">6대 핵심 페르소나</span>
+      <span class="section-desc">각 세그먼트 1줄 요약 + 추천 상품 + 채널 — 마케팅 부서 공유용 카드</span>
+    </div>
+
+    <div class="persona-grid">
+
+      <div class="persona-card" style="--persona-color:#f43f5e;--persona-bg:rgba(244,63,94,0.06)">
+        <div class="icon-row">
+          <div class="persona-icon">👑</div>
+          <span class="persona-tag">VVIP · TIER 1</span>
+        </div>
+        <h4>60대+ 남성 자산가</h4>
+        <p class="summary">시장 객단가 정점. 154명이 전체 AUM의 결정적 부분 책임. 별도 PB 트랙 필수.</p>
+        <div class="stats-row">
+          <div class="stat-mini"><div class="lab">인원</div><div class="val">3,775명</div></div>
+          <div class="stat-mini"><div class="lab">1인당</div><div class="val">2,564만</div></div>
+          <div class="stat-mini"><div class="lab">AUM 비중</div><div class="val">16.5%</div></div>
+        </div>
+        <div class="reco-label">▣ 추천 상품</div>
+        <div class="reco-tags">
+          <span class="reco-tag">KODEX 레버리지</span>
+          <span class="reco-tag">단일종목 LEV</span>
+          <span class="reco-tag">위클리CC</span>
+        </div>
+        <div class="reco-label" style="margin-top:8px">▣ 채널</div>
+        <div class="reco-tags">
+          <span class="reco-tag">PB 1:1 IR</span>
+          <span class="reco-tag">VIP 세미나</span>
+        </div>
+      </div>
+
+      <div class="persona-card" style="--persona-color:#fbbf24;--persona-bg:rgba(251,191,36,0.06)">
+        <div class="icon-row">
+          <div class="persona-icon">🎯</div>
+          <span class="persona-tag">CORE · 시장 핵심</span>
+        </div>
+        <h4>50대 남성 액티브 트레이더</h4>
+        <p class="summary">시장 단일 최대 풀(AUM 23.3%). 5월 신규 라인업 1차 노출 풀. 모든 KODEX 출시의 게이트웨이.</p>
+        <div class="stats-row">
+          <div class="stat-mini"><div class="lab">인원</div><div class="val">7,459명</div></div>
+          <div class="stat-mini"><div class="lab">1인당</div><div class="val">1,833만</div></div>
+          <div class="stat-mini"><div class="lab">AUM 비중</div><div class="val">23.3%</div></div>
+        </div>
+        <div class="reco-label">▣ 추천 상품</div>
+        <div class="reco-tags">
+          <span class="reco-tag">KODEX 반도체</span>
+          <span class="reco-tag">단일종목 LEV</span>
+          <span class="reco-tag">AI TOP2+</span>
+        </div>
+        <div class="reco-label" style="margin-top:8px">▣ 채널</div>
+        <div class="reco-tags">
+          <span class="reco-tag">유튜브 트레이딩</span>
+          <span class="reco-tag">증권 커뮤니티</span>
+          <span class="reco-tag">MTS 푸시</span>
+        </div>
+      </div>
+
+      <div class="persona-card" style="--persona-color:#fb923c;--persona-bg:rgba(251,146,60,0.06)">
+        <div class="icon-row">
+          <div class="persona-icon">💼</div>
+          <span class="persona-tag">CORE · 인원 1위</span>
+        </div>
+        <h4>50대 여성 안정형 보유자</h4>
+        <p class="summary">시장 단일 최대 인원 풀(10,873명). 그러나 객단가 정체 — 끌어올리면 시장 임팩트 막대.</p>
+        <div class="stats-row">
+          <div class="stat-mini"><div class="lab">인원</div><div class="val">10,873명</div></div>
+          <div class="stat-mini"><div class="lab">1인당</div><div class="val">653만</div></div>
+          <div class="stat-mini"><div class="lab">AUM 비중</div><div class="val">12.1%</div></div>
+        </div>
+        <div class="reco-label">▣ 추천 상품</div>
+        <div class="reco-tags">
+          <span class="reco-tag">KODEX 위클리CC</span>
+          <span class="reco-tag">TIGER TOP10</span>
+          <span class="reco-tag">AI TOP2+</span>
+        </div>
+        <div class="reco-label" style="margin-top:8px">▣ 채널</div>
+        <div class="reco-tags">
+          <span class="reco-tag">MTS 추천</span>
+          <span class="reco-tag">은행 연계</span>
+          <span class="reco-tag">노후 자산 IR</span>
+        </div>
+      </div>
+
+      <div class="persona-card" style="--persona-color:#5b8def;--persona-bg:rgba(91,141,239,0.06)">
+        <div class="icon-row">
+          <div class="persona-icon">📈</div>
+          <span class="persona-tag">GROWTH · 성장 풀</span>
+        </div>
+        <h4>40대 남성 자산형성기</h4>
+        <p class="summary">레버리지·신상품 흡수율 가장 높은 풀. KODEX 4축 funnel 핵심 통로.</p>
+        <div class="stats-row">
+          <div class="stat-mini"><div class="lab">인원</div><div class="val">6,595명</div></div>
+          <div class="stat-mini"><div class="lab">1인당</div><div class="val">1,588만</div></div>
+          <div class="stat-mini"><div class="lab">AUM 비중</div><div class="val">17.9%</div></div>
+        </div>
+        <div class="reco-label">▣ 추천 상품</div>
+        <div class="reco-tags">
+          <span class="reco-tag">KODEX 레버리지</span>
+          <span class="reco-tag">AI TOP2+</span>
+          <span class="reco-tag">단일종목 LEV</span>
+        </div>
+        <div class="reco-label" style="margin-top:8px">▣ 채널</div>
+        <div class="reco-tags">
+          <span class="reco-tag">유튜브 알고리즘</span>
+          <span class="reco-tag">금융 뉴스레터</span>
+        </div>
+      </div>
+
+      <div class="persona-card" style="--persona-color:#14b8a6;--persona-bg:rgba(20,184,166,0.06)">
+        <div class="icon-row">
+          <div class="persona-icon">🌱</div>
+          <span class="persona-tag">FUTURE · LTV 풀</span>
+        </div>
+        <h4>20대 여성 신규 진입자</h4>
+        <p class="summary">현재 객단가 낮지만 10년 LTV 관점 핵심 풀. 적립식 자동투자로 단가 점진 상승 유도.</p>
+        <div class="stats-row">
+          <div class="stat-mini"><div class="lab">인원</div><div class="val">4,300명</div></div>
+          <div class="stat-mini"><div class="lab">1인당</div><div class="val">185만</div></div>
+          <div class="stat-mini"><div class="lab">AUM 비중</div><div class="val">1.4%</div></div>
+        </div>
+        <div class="reco-label">▣ 추천 상품</div>
+        <div class="reco-tags">
+          <span class="reco-tag">TIGER TOP10</span>
+          <span class="reco-tag">KODEX AI반도체</span>
+          <span class="reco-tag">적립식 자동투자</span>
+        </div>
+        <div class="reco-label" style="margin-top:8px">▣ 채널</div>
+        <div class="reco-tags">
+          <span class="reco-tag">인스타그램</span>
+          <span class="reco-tag">유튜브 숏폼</span>
+          <span class="reco-tag">카카오</span>
+        </div>
+      </div>
+
+      <div class="persona-card" style="--persona-color:#a78bfa;--persona-bg:rgba(167,139,250,0.06)">
+        <div class="icon-row">
+          <div class="persona-icon">🚀</div>
+          <span class="persona-tag">EMERGING · 신규</span>
+        </div>
+        <h4>30대 남성 액티브 입문자</h4>
+        <p class="summary">레버리지·테마 ETF 첫 진입 풀. 향후 10년간 시장의 주류로 성장할 풀.</p>
+        <div class="stats-row">
+          <div class="stat-mini"><div class="lab">인원</div><div class="val">4,596명</div></div>
+          <div class="stat-mini"><div class="lab">1인당</div><div class="val">893만</div></div>
+          <div class="stat-mini"><div class="lab">AUM 비중</div><div class="val">7.0%</div></div>
+        </div>
+        <div class="reco-label">▣ 추천 상품</div>
+        <div class="reco-tags">
+          <span class="reco-tag">KODEX 반도체</span>
+          <span class="reco-tag">AI TOP2+</span>
+          <span class="reco-tag">레버리지 입문</span>
+        </div>
+        <div class="reco-label" style="margin-top:8px">▣ 채널</div>
+        <div class="reco-tags">
+          <span class="reco-tag">유튜브</span>
+          <span class="reco-tag">트위터·X</span>
+          <span class="reco-tag">증권 앱 푸시</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
 </div>
 
 <!-- STRATEGY -->
@@ -1108,21 +1380,25 @@
         <li>§08-10 분포 · 산업 · 집중도</li>
         <li>§11-13 편차 · 지도 · 페어</li>
         <li>§14 AGE × SEX (NEW)</li>
-        <li>§15 종목 × 연령 (NEW)</li>
-        <li>§16 종목 × 성별 (NEW)</li>
+        <li>§15-16 종목별 연령·성별 (NEW)</li>
         <li>§17 VVIP 풀 (NEW)</li>
         <li>§18 20대 여성 (NEW)</li>
         <li>§19 시·도 × 연령 (NEW)</li>
+        <li>§20 라이프사이클 (NEW)</li>
+        <li>§21 세그먼트 트리맵 (NEW)</li>
+        <li>§22 선호도 인덱스 (NEW)</li>
+        <li>§23 페르소나 카드 (NEW)</li>
       </ul>
     </div>
     <div class="footer-section">
       <h5>METADATA</h5>
       <ul>
-        <li>VERSION · 6.0</li>
+        <li>VERSION · 6.1</li>
         <li>DATE · 2026.05.06</li>
         <li>OWNER · ETF PLANNING</li>
         <li>STATUS · CONFIDENTIAL</li>
-        <li>DATA · 5차원</li>
+        <li>DATA · 5차원 (종목·시도·시구·연령·성별)</li>
+        <li>DEVICE · 데스크톱·모바일 반응형</li>
       </ul>
     </div>
   </div>
