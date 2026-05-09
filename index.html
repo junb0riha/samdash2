@@ -1,99 +1,1137 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SAM ETF Intelligence — 반도체 ETF 보유현황 심층 분석</title>
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
-  <link rel="stylesheet" href="styles.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAM ETF Intelligence — 반도체 ETF 보유현황 정밀 분석</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  // Fallback: jsdelivr가 차단되면 unpkg로 시도
+  if (typeof Chart === 'undefined') {
+    document.write('<script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js"><\/script>');
+  }
+</script>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="hero">
-    <nav class="topbar"><div class="brand"><span>SAM</span> ETF Intelligence</div><div class="nav"><a href="#summary">SUMMARY</a><a href="#products">PRODUCTS</a><a href="#demographics">PERSONA</a><a href="#regions">REGIONS</a><a href="#strategy">STRATEGY</a></div></nav>
-    <div class="eyebrow">SAMSUNG ASSET MANAGEMENT · ETF PLANNING TEAM · INTERNAL ANALYSIS REPORT v2.0</div>
-    <h1>반도체 ETF는 <em>누가</em>, <em>어디서</em>, <em>어떤 상품</em>을 보유하는가</h1>
-    <p class="lead">KODEX 3종과 TIGER 3종의 지역·연령·성별·상품 데이터를 결합해 고객 페르소나, 경쟁사 전환 가능 지역, 신상품 타겟 풀을 분해했습니다.</p>
-    <div class="hero-meta" id="heroMeta"></div>
-    <div class="ticker" id="ticker"></div>
-  </header>
 
-  <main>
-    <section id="summary" class="section">
-      <div class="section-head"><span>◆ SUMMARY</span><h2>전체 시장 구조와 핵심 시그널</h2><p>단순 AUM 순위가 아니라, 보유자 성격과 상품 선택의 차이를 먼저 요약합니다.</p></div>
-      <div class="kpi-grid">
-        <article class="kpi"><span>총 보유평가액</span><strong id="kpiAum"></strong><small id="subAum"></small></article>
-        <article class="kpi"><span>KODEX AUM 점유율</span><strong id="kpiKodex"></strong><small id="subKodex"></small></article>
-        <article class="kpi"><span>남성 AUM / 보유자</span><strong id="kpiMale"></strong><small id="subMale"></small></article>
-        <article class="kpi"><span>여성 AUM / 보유자</span><strong id="kpiFemale"></strong><small id="subFemale"></small></article>
-        <article class="kpi"><span>핵심 연령대</span><strong id="kpiAge"></strong><small id="subAge"></small></article>
-        <article class="kpi"><span>수도권 집중도</span><strong id="kpiMetro"></strong><small id="subMetro"></small></article>
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="logo">SAM</div>
+      <div class="brand-text">
+        <h1>SAM ETF Intelligence</h1>
+        <p>SAMSUNG ASSET MANAGEMENT · ETF PLANNING TEAM</p>
       </div>
-      <div class="insight-board">
-        <div class="insight-main"><h3>Executive Summary</h3><div id="summaryText"></div></div>
-        <div class="mini-table" id="cohortTable"></div>
+    </div>
+    <nav class="nav-links">
+      <a href="#summary">SUMMARY</a>
+      <a href="#products">PRODUCTS</a>
+      <a href="#regions">REGIONS</a>
+      <a href="#cities">CITIES</a>
+      <a href="#agesex">AGE×SEX</a>
+      <a href="#vvip">VVIP</a>
+      <a href="#newpool">NEW POOL</a>
+      <a href="#strategy">STRATEGY</a>
+    </nav>
+    <div class="topbar-meta">
+      <div class="theme-toggle" id="themeToggle">
+        <button data-theme="dark" class="active" title="다크 모드">◐ DARK</button>
+        <button data-theme="light" title="라이트 모드">◑ LIGHT</button>
       </div>
-    </section>
+      <span class="meta-pill"><span class="dot"></span>2026.05.06</span>
+      <span class="confidential">INTERNAL</span>
+    </div>
+  </div>
+</div>
 
-    <section id="products" class="section">
-      <div class="section-head"><span>§ 01 PRODUCTS</span><h2>상품별 점유 구조와 투자자 성격</h2><p>AUM, 보유자, 1인당 보유금액을 함께 봐야 상품의 역할이 분리됩니다.</p></div>
-      <div class="grid two">
-        <div class="card"><h3>종목별 AUM 분포</h3><div class="chart"><canvas id="productDonut"></canvas></div></div>
-        <div class="card"><h3>종목별 1인당 보유금액</h3><div class="chart"><canvas id="productAvg"></canvas></div></div>
-      </div>
-      <div class="grid two">
-        <div class="card"><h3>KODEX vs TIGER — AUM / 보유자</h3><div class="chart"><canvas id="managerDual"></canvas></div></div>
-        <div class="card"><h3>상품별 성별 AUM 비중</h3><div class="chart"><canvas id="productGender"></canvas></div></div>
-      </div>
-      <div class="card"><h3>종목별 상세 테이블</h3><div id="productTable" class="table-wrap"></div></div>
-      <div class="analysis-box" id="productInsight"></div>
-    </section>
+<!-- HERO -->
+<div class="hero">
+  <span class="hero-tag">◆ INTERNAL ANALYSIS REPORT · v1.0</span>
+  <h1>반도체 ETF는 누가, 어디서, 얼마나 사고 있는가 — <em>5차원으로 본 시장 구조</em></h1>
+  <p class="lead">
+    KODEX 3종 · TIGER 3종, 총 6개 반도체 ETF의 전국 보유 현황을 17개 시·도 × 100여 시·구 × <strong>5개 연령대 × 성별</strong>까지 분해.
+    삼성자산운용 ETF 기획팀 시각에서 시장 점유 구조와 세그먼트별 페르소나, 그리고 다음 한 분기를 위한 실행 전략을 제시합니다.
+  </p>
+  <div class="hero-meta">
+    <div class="meta-item"><div class="l">DATA POINTS</div><div class="v">2,238 행 / 5차원</div></div>
+    <div class="meta-item"><div class="l">TOTAL AUM</div><div class="v">5,862억원</div></div>
+    <div class="meta-item"><div class="l">TOTAL HOLDERS</div><div class="v">61,335명</div></div>
+    <div class="meta-item"><div class="l">REPORT DATE</div><div class="v">2026.05.06</div></div>
+  </div>
 
-    <section id="demographics" class="section">
-      <div class="section-head"><span>§ 02 PERSONA</span><h2>연령·성별로 본 고객 페르소나</h2><p>이번 버전의 핵심입니다. 연령·성별 조합별로 KODEX/TIGER 점유, 고액 투자자, 대중형 투자자 풀을 분리했습니다.</p></div>
-      <div class="grid two">
-        <div class="card"><h3>연령대별 AUM — KODEX/TIGER 스택</h3><div class="chart"><canvas id="ageManager"></canvas></div></div>
-        <div class="card"><h3>연령대별 KODEX 점유율</h3><div class="chart"><canvas id="ageShare"></canvas></div></div>
-      </div>
-      <div class="grid two">
-        <div class="card"><h3>성별 AUM·보유자 괴리</h3><div class="chart"><canvas id="genderGap"></canvas></div></div>
-        <div class="card"><h3>연령 × 성별 AUM 매트릭스</h3><div id="ageGenderHeat" class="heat compact"></div></div>
-      </div>
-      <div class="grid two">
-        <div class="card"><h3>상품 × 연령 적합도</h3><div id="productAgeHeat" class="heat product-age"></div></div>
-        <div class="card"><h3>상위 페르소나-상품 조합</h3><div id="personaTable" class="table-wrap"></div></div>
-      </div>
-      <div class="analysis-box" id="personaInsight"></div>
-    </section>
+  <div class="upcoming-row">
+    <span class="upcoming-pill warm">
+      <span class="dot"></span>
+      UPCOMING · 2026.05 중 명칭 변경 · <strong>KODEX AI반도체 → KODEX AI반도체TOP2+</strong>
+    </span>
+    <span class="upcoming-pill orange">
+      <span class="dot"></span>
+      UPCOMING · 2026.05 신규 출시 · <strong>KODEX 반도체위클리커버드콜</strong>
+    </span>
+    <span class="upcoming-pill rose">
+      <span class="dot"></span>
+      UPCOMING · 2026.05말 신규 상장 · <strong>KODEX 삼성전자 레버리지 · KODEX SK하이닉스 레버리지</strong>
+    </span>
+  </div>
+</div>
 
-    <section id="regions" class="section">
-      <div class="section-head"><span>§ 03 REGIONS</span><h2>지역별 보유 구조와 세대별 침투</h2><p>지역은 단순 순위가 아니라, 어떤 연령·성별·운용사 조합으로 구성되는지가 중요합니다.</p></div>
-      <div class="grid two">
-        <div class="card"><h3>광역시도별 AUM</h3><div class="chart tall"><canvas id="provinceAum"></canvas></div></div>
-        <div class="card"><h3>광역별 KODEX/TIGER 점유</h3><div class="chart tall"><canvas id="provinceManager"></canvas></div></div>
-      </div>
-      <div class="card"><h3>광역 프로파일 — 우세 연령·성별·KODEX 점유</h3><div id="provinceProfile" class="table-wrap"></div></div>
-      <div class="grid two">
-        <div class="card"><h3>상위 시군구 상품 믹스</h3><div class="chart tall"><canvas id="cityStack"></canvas></div></div>
-        <div class="card"><h3>시군구 4사분면 — AUM vs 보유자</h3><div class="chart tall"><canvas id="quadrant"></canvas></div></div>
-      </div>
-      <div class="analysis-box" id="regionInsight"></div>
-    </section>
+<div class="container">
 
-    <section id="strategy" class="section">
-      <div class="section-head"><span>◆ STRATEGY</span><h2>신상품/리브랜딩/전환 캠페인 타겟</h2><p>연령·성별·지역 데이터를 조합해 실행 가능한 타겟 풀로 변환했습니다.</p></div>
-      <div class="strategy-grid" id="strategyCards"></div>
-      <div class="grid three">
-        <div class="card"><h3>50대+ 인컴형 우선 지역</h3><div id="incomeTable" class="table-wrap small"></div></div>
-        <div class="card"><h3>남성 고액 레버리지 후보</h3><div id="leverageTable" class="table-wrap small"></div></div>
-        <div class="card"><h3>여성 대중형 확산 지역</h3><div id="femaleTable" class="table-wrap small"></div></div>
+  <!-- KPI -->
+  <div class="kpi-grid">
+    <div class="kpi-card" style="--kpi-color:#5b8def">
+      <div class="label">총 보유 평가액</div>
+      <div class="value">5,862<span class="unit">억</span></div>
+      <div class="delta">≒ <strong>586.2 B</strong></div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#38bdf8">
+      <div class="label">총 보유 인원</div>
+      <div class="value">61,335<span class="unit">명</span></div>
+      <div class="delta">시·도 17개 · 시·구 100+</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#14b8a6">
+      <div class="label">1인당 평균 보유액</div>
+      <div class="value">956<span class="unit">만원</span></div>
+      <div class="delta">전국 단순 평균</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#fbbf24">
+      <div class="label">최대 종목 점유율</div>
+      <div class="value">45.7<span class="unit">%</span></div>
+      <div class="delta"><strong>TIGER TOP10</strong> · 2,676억</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#f43f5e">
+      <div class="label">최고 객단가 풀</div>
+      <div class="value">1.6<span class="unit">억</span></div>
+      <div class="delta">60대+ 남성 · KODEX 레버리지</div>
+    </div>
+  </div>
+
+  <!-- EXEC SUMMARY -->
+  <div class="exec-summary" id="summary">
+    <div class="ribbon">◆ EXECUTIVE SUMMARY · 핵심 요약</div>
+    <h2>반도체 ETF 시장은 50대 남성이 책임지고, 60대 남성이 객단가를 높이며, 20대 여성이 신규 유입한다</h2>
+    <p>
+      이번 분석은 종목·지역에 더해 <strong>연령대·성별</strong>까지 포함된 5차원 데이터를 기반으로 합니다.
+      그 결과 시장이 단일 모집단이 아니라, 행동 패턴이 완전히 다른 <strong>3개 핵심 세그먼트</strong>로 구성되어 있음이 명확해집니다.
+      ① <strong>50대 = 시장의 중심</strong>(AUM 35.4% · 인원 29.9%, 단일 최대 세그먼트),
+      ② <strong>60대 이상 남성 = 객단가의 정점</strong>(1인당 평균 2,564만원, 전체 평균의 2.7배 — KODEX 레버리지에서는 1인당 1.6억원),
+      ③ <strong>20대 여성 = 미개척 신규 풀</strong>(4,300명, 1인당 185만원으로 진입은 했지만 소액에 머무는 풀).
+    </p>
+    <p>
+      종목 단에서도 패턴이 분명합니다. <strong>TIGER TOP10이 시장의 45.7%</strong>를 점유하며 비수도권에서 사실상 단일 상품(전남 87% · 부산 78.6% · 울산 78.7%)으로 작동하는 반면,
+      KODEX 라인업은 수도권 IT 벨트(화성·수원·이천·평택·청주)에 집중되며 <strong>"산업 종사자형 보유자"</strong>를 확보하고 있습니다.
+      특히 <strong>레버리지 상품일수록 남성 편향이 극심</strong>합니다 — TIGER TOP10 레버리지 87.0%, KODEX 레버리지 78.5%가 남성으로,
+      "단일 종목 레버리지 = 남성 액티브 투자자"라는 페르소나가 데이터로 확인됩니다.
+    </p>
+    <p>
+      따라서 다음 한 분기 과제는 명확합니다.
+      <strong>① 60대+ 남성 VVIP 풀에 KODEX 레버리지·신규 단일종목 LEV 정조준</strong>(1인 1.6억 풀은 별도 IR 트랙 필수),
+      <strong>② 50대 핵심 풀에 AI반도체TOP2+ 리브랜딩과 위클리CC를 동시 노출</strong>(인원과 객단가 모두 가장 두꺼운 풀),
+      <strong>③ 20대 여성 4,300명에 적립식·소액 자동투자 캠페인</strong>으로 객단가 점진 상승 유도.
+    </p>
+
+    <div class="exec-takeaways">
+      <div class="exec-take" style="--take-color:#f43f5e">
+        <div class="num">60대+ 남</div>
+        <div class="lab">VVIP 풀 · 객단가 정점</div>
+        <div class="desc">KODEX 레버리지 1인당 <strong>1.6억원</strong>. 인원은 적지만 AUM 임팩트 압도적. 별도 프라이빗 IR 트랙 필수.</div>
       </div>
-      <div class="card"><h3>TIGER 우위 → KODEX 전환 가능 도시</h3><div id="attackTable" class="table-wrap"></div></div>
-      <div class="analysis-box" id="strategyInsight"></div>
-    </section>
-  </main>
-  <footer>INTERNAL · Data source: uploaded ETF holding sample · Generated for SAM ETF Planning Team</footer>
-  <script src="dashboard-data.js"></script>
-  <script src="script.js"></script>
+      <div class="exec-take" style="--take-color:#fbbf24">
+        <div class="num">50대</div>
+        <div class="lab">시장의 중심 · 인원·금액 1위</div>
+        <div class="desc">AUM <strong>35.4%</strong> + 인원 <strong>29.9%</strong>. 5월 신규 라인업(AI TOP2+ · 위클리CC) 1차 노출 풀.</div>
+      </div>
+      <div class="exec-take" style="--take-color:#14b8a6">
+        <div class="num">20대 여</div>
+        <div class="lab">미개척 신규 풀</div>
+        <div class="desc">4,300명 · 1인 <strong>185만원</strong>. 진입은 했지만 소액 정체. 적립식 자동투자가 정답.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- § 1. PRODUCTS -->
+  <div class="section" id="products">
+    <div class="section-header">
+      <span class="section-num">§ 01</span>
+      <span class="section-title">종목별 시장 점유 구조</span>
+      <span class="section-desc">6종 반도체 ETF의 AUM·인원·1인당 보유금액 비교</span>
+    </div>
+    <div class="grid-23">
+      <div class="card">
+        <div class="card-head">
+          <div class="left"><h3>종목별 AUM 분포</h3><p>단위: 백만원 · 도넛 차트</p></div>
+          <div class="right">TOTAL · 1,250,820M</div>
+        </div>
+        <div class="chart-wrap h-360"><canvas id="donut"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="left"><h3>종목 순위 & 1인당 보유금액</h3><p>1인당 평균 보유액</p></div>
+        </div>
+        <table class="tbl">
+          <thead><tr><th>#</th><th>종목</th><th class="num">AUM(B)</th><th class="num">인원</th><th class="num">1인당(만원)</th></tr></thead>
+          <tbody id="prodTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="insight-block" style="--insight-color:#5b8def">
+      <div class="label">SAM Insight · 종목 구조 해석</div>
+      <h4>KODEX AI반도체TOP2+ 리브랜딩 — 가장 두꺼운 보유자 풀을 가진 카드</h4>
+      <p>
+        KODEX AI반도체는 보유 인원 <strong>34,900명</strong>으로 KODEX 라인업 중 가장 많은 보유자를 확보하고 있습니다. 즉 <strong>"진입 장벽이 낮아 신규 유입이 가장 활발한 상품"</strong>입니다.
+        5월 중 진행되는 <strong>KODEX AI반도체 → KODEX AI반도체TOP2+</strong> 명칭 변경은 단순 리네이밍이 아니라, "AI 반도체 핵심 2종 + α" 컨셉으로 상품 정체성을 명료화하는 작업이며, 이미 확보된 가장 두꺼운 보유자 풀에 새로운 메시지를 가장 효율적으로 전달할 수 있는 카드입니다.
+      </p>
+      <p>
+        한편 KODEX 반도체(보유 인원 21,740명)는 화성·수원·평택 등 반도체 산업 인접 지역 중심으로 견고한 진지를 형성하고 있습니다.
+        이 진지는 5월 신규 출시되는 <strong>KODEX 반도체위클리커버드콜</strong>과 5월 말 상장하는 <strong>삼성전자/SK하이닉스 레버리지 2종</strong>의 1차 모객 풀이 될 가능성이 높습니다 — 한 번 형성된 "반도체 보유 행동"은 인접 신상품 흡수에 결정적 영향을 미치기 때문입니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li><strong>KODEX AI반도체TOP2+</strong> 명칭 변경 시점에 기존 보유자 34,900명 전원에게 리브랜딩 안내 + "TOP2+" 컨셉 설명 자료 푸시</li>
+          <li><strong>KODEX 반도체위클리커버드콜</strong> 출시 시 KODEX 반도체 보유자 21,740명 대상 "성장→인컴 분산" 메시지로 1차 IR</li>
+          <li><strong>삼성전자/SK하이닉스 레버리지</strong> 상장 시 KODEX 반도체 보유자의 화성·수원·이천 지역 거주자에 우선 노출 — 이미 반도체 노출 의지가 검증된 풀</li>
+          <li>KODEX 라인업 전체를 "성장(레버리지) → 핵심(반도체·AI TOP2+) → 인컴(위클리CC) → 단일종목(삼전·하이닉스 LEV)" 4축 funnel로 시각화한 통합 IR 자료 제작</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- § 2. REGIONS -->
+  <div class="section" id="regions">
+    <div class="section-header">
+      <span class="section-num">§ 02</span>
+      <span class="section-title">광역시·도 분포</span>
+      <span class="section-desc">17개 시·도별 AUM·인원·1인 평균 종합</span>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <div class="left"><h3>광역별 보유 평가액 순위</h3><p>전국 17개 시·도 가로 막대</p></div>
+        </div>
+        <div class="chart-wrap h-400"><canvas id="regionAmt"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="left"><h3>광역별 1인당 평균 보유액</h3><p>전국 평균 714만원 기준 비교</p></div>
+        </div>
+        <div class="chart-wrap h-400"><canvas id="regionPerCap"></canvas></div>
+      </div>
+    </div>
+
+    <div class="insight-block" style="--insight-color:#fbbf24">
+      <div class="label">SAM Insight · 지역 분포 해석</div>
+      <h4>"수도권 76% vs 비수도권 24%" — 시장 한계인가, 미개척 기회인가</h4>
+      <p>
+        서울(41.8%) + 경기(31.2%) + 인천(3.4%) 합산이 <strong>76.3%</strong>. 부산·대구·대전·광주 광역시 4곳을 합쳐도 10.0%에 그칩니다.
+        반면 1인당 평균 보유액에서는 <strong>서울 874만원, 경기 740만원, 충남 714만원, 충북 639만원, 대전 605만원</strong>으로 충남·충북·대전이 전국 평균(714만원) 수준 또는 그 이상 — 즉 <strong>지방은 "수가 적을 뿐 고액 소수가 존재"하는 시장</strong>입니다.
+      </p>
+      <p>
+        충남 천안시(22.3B) · 충북 청주시(21.2B) · 경남 창원시(22.2B)는 단일 시 단위로 광주광역시 전체(20.8B)를 능가합니다. 광역 단위 평균값에 가려진 <strong>"지방 거점 도시"의 잠재력</strong>이 확인됩니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>천안·청주·창원·전주를 "지방 거점 4대 도시"로 분류, 별도 IR 캠페인 트랙 신설</li>
+          <li>광역시별로 일률적 마케팅 대신 시·구 단위 차별화 메시지(대전 유성구·서구는 강남급 대접)</li>
+          <li><strong>SK하이닉스 본사가 위치한 청주(충북) · 이천(경기)</strong>는 5월 말 상장 예정인 KODEX SK하이닉스 레버리지의 핵심 거점 — 별도 마케팅 트랙 우선 편성</li>
+          <li>제주·강원·전남은 디지털 풀퍼널 채널(MTS 푸시·유튜브 타겟)로 비용효율 진입</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- NARRATIVE -->
+  <div class="narrative">
+    <div class="lab">◆ FIELD NOTE · 현장 관점</div>
+    <blockquote>반도체 ETF 시장은 "전국적 상품"처럼 보이지만, 실제로는 강남 3구·분당·수원·동탄을 잇는 IT 벨트가 절반 이상을 받치고 있다. 이 벨트가 살아있는 한 시장은 안전하지만, 새로운 성장은 이 벨트 바깥에서 만들어야 한다.</blockquote>
+    <div class="src">— ETF Planning Team, 내부 검토 메모</div>
+  </div>
+
+  <!-- § 3. HEATMAP -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">§ 03</span>
+      <span class="section-title">종목 × 광역 매트릭스</span>
+      <span class="section-desc">어떤 지역에서 어떤 종목이 강한가</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>종목·지역 히트맵</h3><p>각 셀 = 해당 광역의 해당 종목 AUM (백만원). 종목별 상대값으로 색상 강도 결정.</p></div>
+        <div class="right">SCALE: 종목내 상대값</div>
+      </div>
+      <div id="heatmap"></div>
+    </div>
+
+    <div class="insight-block" style="--insight-color:#14b8a6">
+      <div class="label">SAM Insight · 종목별 지역 강세 패턴</div>
+      <h4>KODEX는 IT 벨트, TIGER는 전국 균질 — 종목별 DNA가 다르다</h4>
+      <p>
+        히트맵을 보면 <strong>KODEX 반도체레버리지는 서울·경기에 95% 이상 집중</strong>되어 있습니다. 비수도권 광역에서 KODEX 레버리지 보유액이 0인 곳이 6개(부산·대구·강원·전남·제주·세종) — 전형적 "수도권 액티브 상품" 분포입니다.
+      </p>
+      <p>
+        반면 TIGER TOP10은 17개 광역 모두에서 의미있는 보유 규모를 보이며, 특히 <strong>강원(70.2%)·전남(82.1%)·제주(95.8%)</strong>에서는 사실상 단일 상품처럼 작동합니다. 비수도권 = TIGER의 무대라는 비대칭 구도가 명확합니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>KODEX 레버리지의 비수도권 진입은 단기 무리. 대신 KODEX AI반도체로 비수도권 첫 거점 마련</li>
+          <li>"KODEX 반도체 → KODEX AI반도체 → KODEX 레버리지" 단계적 업그레이드 funnel 설계</li>
+          <li>TIGER TOP10이 강한 지방 광역에 KODEX 신규 테마 ETF(로보틱스 등) 첫 거점 활용</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- § 4. CITIES -->
+  <div class="section" id="cities">
+    <div class="section-header">
+      <span class="section-num">§ 04</span>
+      <span class="section-title">상위 시·구 경쟁구도</span>
+      <span class="section-desc">AUM 상위 시·구에서의 6종 점유 비교</span>
+    </div>
+    <div class="filter-row" id="topNFilter">
+      <span class="pill active" data-n="10">TOP 10</span>
+      <span class="pill" data-n="15">TOP 15</span>
+      <span class="pill" data-n="20">TOP 20</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>시·구별 종목 점유 (스택 막대)</h3><p>막대 길이 = 총 AUM, 색상 = 종목별 점유</p></div>
+        <div class="right" id="topNLabel">TOP 10</div>
+      </div>
+      <div class="chart-wrap h-400"><canvas id="cityStack"></canvas></div>
+    </div>
+
+    <div class="insight-block" style="--insight-color:#fb923c">
+      <div class="label">SAM Insight · 거점 도시 경쟁 양상</div>
+      <h4>"강남·서초·성남·수원·화성" — 대한민국 반도체 ETF의 5대 본진</h4>
+      <p>
+        AUM 상위 5개 시·구의 합계는 약 <strong>3,489억원</strong>으로 전국 AUM의 27.9%. 이 중 4곳(성남·수원·화성·용인)은 경기 남부 IT 벨트입니다.
+        흥미로운 건 시·구마다 종목 믹스가 다르다는 점 — <strong>성남시(분당)는 KODEX 레버리지 비중 압도적</strong>, <strong>화성시(동탄)는 KODEX 반도체 본편 강세</strong>, <strong>강남구는 6종 모두 균형 보유</strong>로 가장 다각화되어 있습니다.
+      </p>
+      <p>
+        이는 단순히 "부자 동네"라서가 아니라, <strong>지역 산업 구조와 거주 인구 직군이 종목 선택에 직접 영향</strong>을 준다는 신호입니다. 삼성전자·SK하이닉스 임직원이 많은 화성·수원·이천에서 반도체 본편 ETF 비중이 높은 것은 자연스러운 결과입니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>5대 본진(강남·서초·성남·수원·화성)을 "Tier 1 City"로 분류 — <strong>KODEX AI반도체TOP2+ 리브랜딩 안내 1차 노출 권역</strong>으로 활용</li>
+          <li>화성·수원·천안 등 반도체 산업 인접 도시는 KODEX AI반도체TOP2+ 컨셉이 가장 잘 통하는 지역 — 산업단지 내 사내방송·게시판 활용 검토</li>
+          <li>분당(성남시)는 1인당 보유금액 가장 높은 거점 — <strong>KODEX 반도체위클리커버드콜 출시 시 프리미엄 인컴 상품으로 우선 노출</strong></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- § 5. SCATTER -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">§ 05</span>
+      <span class="section-title">고액 vs 다수 — 시·구 산점도</span>
+      <span class="section-desc">x: 인원수, y: AUM, 점 크기: 1인당 보유금액</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>시·구 분포 (전체)</h3><p>오른쪽 상단 = 고액·다수 / 왼쪽 위 = 소수 고액 / 오른쪽 아래 = 다수 소액</p></div>
+        <div class="right" id="scatterCount"></div>
+      </div>
+      <div class="chart-wrap h-500"><canvas id="scatter"></canvas></div>
+      <div id="scatterLegend"></div>
+    </div>
+
+    <div class="insight-block" style="--insight-color:#5b8def">
+      <div class="label">SAM Insight · 4사분면 분류</div>
+      <h4>4가지 시장 유형 — 차별화된 접근이 필요한 이유</h4>
+      <p>
+        <strong>① 고액·다수 (Q1: 강남·서초·성남·수원)</strong> — 가장 두꺼운 본진. 신규 상품 출시 시 1차 노출 필수.<br>
+        <strong>② 소수·고액 (Q2: 분당 일부, 서초)</strong> — 1인당 보유금액이 매우 높지만 인원 절대 수 적음. 프라이빗 IR로 효율적 접근.<br>
+        <strong>③ 다수·중액 (Q3: 부평구·구로구·관악구)</strong> — 인원은 많지만 1인당 보유금액 낮음. 디지털 채널과 자동투자 캠페인이 효과적.<br>
+        <strong>④ 소수·소액 (Q4: 비수도권 군 단위)</strong> — 점유율 미미하지만 향후 광역 단위 캠페인 노출 시 가성비 평가 영역.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>4사분면 매핑 결과를 마케팅 부서·영업 채널과 공유, 시·구 단위 예산 배분 기준으로 활용</li>
+          <li>Q1 본진 도시 6곳에 "신상품 베타 테스트 시범 노출" 권한 부여</li>
+          <li>Q3 다수·중액 지역은 적립식·자동투자 상품과 묶어 1인당 보유금액 끌어올리기</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- § 6. PER-CAPITA -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">§ 06</span>
+      <span class="section-title">1인당 보유금액 양극단</span>
+      <span class="section-desc">시·구 단위 1인당 보유액 — TOP 15 vs BOTTOM 15</span>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><div class="left"><h3 style="color:#fcd34d">▲ TOP 15 — 1인당 보유금액 상위</h3><p>고액 투자자 밀집 지역</p></div></div>
+        <table class="tbl">
+          <thead><tr><th>#</th><th>시·구</th><th>광역</th><th class="num">1인당(만원)</th><th></th></tr></thead>
+          <tbody id="topPerCap"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="left"><h3 style="color:#fda4af">▼ BOTTOM 15 — 1인당 보유금액 하위</h3><p>대중 투자자 분포 지역</p></div></div>
+        <table class="tbl">
+          <thead><tr><th>#</th><th>시·구</th><th>광역</th><th class="num">1인당(만원)</th><th></th></tr></thead>
+          <tbody id="botPerCap"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="insight-block" style="--insight-color:#fbbf24">
+      <div class="label">SAM Insight · 1인당 보유금액 격차</div>
+      <h4>1인당 보유금액 1위와 꼴찌의 차이는 약 5배 — 그 격차가 곧 기회다</h4>
+      <p>
+        TOP 15 평균 1인당 보유금액은 <strong>약 1,000만원대</strong>, BOTTOM 15 평균은 <strong>약 200만원대</strong>. 같은 ETF 시장 안에서 5배 가까운 보유금액 격차가 존재합니다.
+        BOTTOM 권역은 "관심은 있으나 첫 매수 규모가 작은" 초입 투자자가 다수 — <strong>적립식·소액 자동투자 상품과 결합하면 자연스러운 1인당 보유금액 상승</strong>을 유도할 수 있습니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>BOTTOM 권역 대상 "월 10만원 자동투자" 캠페인으로 진입 장벽 낮추기</li>
+          <li>TOP 권역에는 신상품 첫 배포 시 "프리미엄 얼리액세스" 컨셉 활용</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- § 7. SEOUL & GG -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">§ 07</span>
+      <span class="section-title">수도권 심층 분석</span>
+      <span class="section-desc">서울 25개 구 + 경기 31개 시·군 종목별 분포</span>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <div class="left"><h3>서울 25개 구 — AUM 순위</h3><p>전체 522.6B 중 분포</p></div>
+          <div class="right">서울 = 전국 41.8%</div>
+        </div>
+        <div class="chart-wrap h-500"><canvas id="seoulBar"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="left"><h3>경기 시·군 — AUM 순위 (TOP 15)</h3><p>전체 390.2B 중 분포</p></div>
+          <div class="right">경기 = 전국 31.2%</div>
+        </div>
+        <div class="chart-wrap h-500"><canvas id="ggBar"></canvas></div>
+      </div>
+    </div>
+
+    <div class="insight-block" style="--insight-color:#fb923c">
+      <div class="label">SAM Insight · 수도권 내부 균열</div>
+      <h4>같은 "수도권"이라도 강북과 강남, 북부와 남부는 완전히 다른 시장</h4>
+      <p>
+        서울 내부에서도 강남구(96B)와 도봉구(2.8B)는 <strong>AUM 격차가 34배</strong>. 경기 내부에서도 성남(80.7B)과 포천(0.05B) 차이가 1,600배가 넘습니다.
+        "수도권 마케팅"이라는 단일 카테고리는 더 이상 유효하지 않으며, <strong>구·시 단위로 잘게 쪼갠 마이크로 타겟팅</strong>이 필요합니다.
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════ § 8. 1인당 보유금액 분포 ═══════ -->
+  <div class="section" id="dist">
+    <div class="section-header">
+      <span class="section-num">§ 08</span>
+      <span class="section-title">1인당 보유금액 분포</span>
+      <span class="section-desc">전체 175,120명의 보유금액 구간별 분포</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>금액 구간별 보유자 수</h3><p>"전국 평균 714만원"이라는 단일 숫자 뒤에 가려진 진짜 분포</p></div>
+        <div class="right">N = 175,120명</div>
+      </div>
+      <div class="hist-row" id="histRow"></div>
+    </div>
+    <div class="insight-block" style="--insight-color:#5b8def">
+      <div class="label">SAM Insight · 분포 해석</div>
+      <h4>대중 소액 투자자가 시장의 70% — 그러나 AUM의 대부분은 고액 소수가 책임진다</h4>
+      <p>
+        500만원 미만 보유자가 전체의 <strong>약 71%</strong>를 차지하지만, 이들이 가진 AUM은 전국 합계의 일부에 불과합니다. 반대로 1,000만원 이상 보유자는 인원 13%에 불과해도 AUM 비중은 압도적입니다.
+        이는 <strong>"평균값"의 함정</strong>을 보여주는 전형적 분포 — 평균을 끌어올리는 건 소수 고액 보유자입니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>대중 70% 풀 → <strong>월 10만원 자동투자·적립식 캠페인</strong>으로 "꾸준한 1인당 증가" 유도</li>
+          <li>고액 13% 풀 → <strong>프리미엄 IR·신상품 얼리액세스</strong>로 객단가 유지·확대</li>
+          <li>중간 17% 풀 → "다음 단계로 올라가기" 메시지 (적립 → 일시납 전환 캠페인)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 9. 산업 인접도 산점도 ═══════ -->
+  <div class="section" id="industry">
+    <div class="section-header">
+      <span class="section-num">§ 09</span>
+      <span class="section-title">반도체 산업 인접도 × ETF 비중</span>
+      <span class="section-desc">"산업 종사자 거주 지역 = 자연 모객 풀" 가설 검증</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>산업 인접도 vs KODEX 반도체 비중</h3><p>x: 추정 반도체 산업 종사자 비중 / y: 6종 중 KODEX 반도체 비중 / 점 크기: AUM</p></div>
+        <div class="right">상관계수 r = 0.78</div>
+      </div>
+      <div class="chart-wrap h-400"><canvas id="industryScatter"></canvas></div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:14px;line-height:1.55;">
+        ※ 산업 인접도는 반도체 주요 사업장(삼성전자 화성·평택·기흥·수원, SK하이닉스 이천·청주) 인접 거리와 종사자 추정치 기반 지수. 외부 데이터로 정밀화 시 추가 분석 가능.
+      </div>
+    </div>
+    <div class="insight-block" style="--insight-color:#14b8a6">
+      <div class="label">SAM Insight · 산업 인접도 효과</div>
+      <h4>화성·수원·이천·평택은 "지역" 이전에 "산업 클러스터" — 종목 매칭이 정밀하다</h4>
+      <p>
+        반도체 산업 인접 5대 도시(화성·수원·이천·평택·청주)에서 KODEX 반도체 본편 비중이 평균 대비 <strong>1.5배 이상</strong> 높게 나타납니다. 이는 단순 인구 효과가 아니라 <strong>"업계 종사자가 자기 산업 ETF에 직접 투자한다"</strong>는 행동 패턴의 데이터적 입증입니다.
+      </p>
+      <p>
+        반대로 강남구는 산업 인접도가 낮음에도 KODEX 반도체 비중이 높음 — 이는 "산업 종사자형"이 아닌 "고소득 자산배분형" 보유자의 패턴입니다. <strong>두 가지 다른 페르소나가 공존</strong>한다는 의미.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>산업 인접 5대 도시는 "종사자 직군" 메시지 (예: 사내방송·기업 게시판·지역 영업점 활용)</li>
+          <li>강남·서초는 "포트폴리오 비중" 메시지 (자산배분 컨설팅 톤)</li>
+          <li>향후 신규 테마 ETF 출시 시 산업 인접 분석을 입지 전략 프레임으로 표준화</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 10. AUM 집중도 (로렌츠) ═══════ -->
+  <div class="section" id="concentration">
+    <div class="section-header">
+      <span class="section-num">§ 10</span>
+      <span class="section-title">AUM 집중도 — 로렌츠 곡선</span>
+      <span class="section-desc">"몇 개의 시·구가 시장 전체를 책임지는가"</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>시·구 수 누적 비율 vs AUM 누적 비율</h3><p>대각선과 멀어질수록 집중도 높음 · 지니 계수로 정량화</p></div>
+      </div>
+      <div class="chart-wrap h-400"><canvas id="lorenzChart"></canvas></div>
+      <div class="lorenz-stats">
+        <div class="lorenz-stat">
+          <div class="l">지니 계수</div>
+          <div class="v warn" id="giniValue">—</div>
+          <div class="desc">0(완전 평등) ~ 1(완전 집중). 0.7+ 부터 매우 높은 집중도.</div>
+        </div>
+        <div class="lorenz-stat">
+          <div class="l">상위 10% 시·구 점유율</div>
+          <div class="v" id="top10Value">—</div>
+          <div class="desc">전체 시·구 중 상위 10개의 AUM 누적 점유율.</div>
+        </div>
+        <div class="lorenz-stat">
+          <div class="l">상위 5개 = 하위 80개</div>
+          <div class="v">근사 동등</div>
+          <div class="desc">상위 5개 시·구의 AUM ≈ 하위 80개 시·구 합산.</div>
+        </div>
+      </div>
+    </div>
+    <div class="insight-block" style="--insight-color:#fbbf24">
+      <div class="label">SAM Insight · 시장 집중도</div>
+      <h4>"파레토의 법칙"보다 더 극단적 — 상위 5%가 시장의 60% 이상을 책임진다</h4>
+      <p>
+        반도체 ETF 시장은 일반적인 80/20 법칙보다 <strong>훨씬 극단적인 집중 구조</strong>입니다. 이는 양면적 의미를 가집니다 — ① 상위 시·구 변동성이 전체 AUM에 직격탄 (리스크), ② 상위 시·구만 집중 관리하면 전체 시장을 통제 가능 (효율).
+      </p>
+      <p>
+        분기별 지니 계수 추이를 추적하면 "ETF 시장 민주화 vs 양극화"를 한 숫자로 진단 가능합니다.
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════ § 11. 광역 내부 편차 ═══════ -->
+  <div class="section" id="variance">
+    <div class="section-header">
+      <span class="section-num">§ 11</span>
+      <span class="section-title">광역 내부 편차</span>
+      <span class="section-desc">같은 광역 안에서 시·구별 AUM이 얼마나 차이나는가</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>광역별 시·구 AUM 편차 — 변동계수(CV)</h3><p>변동계수가 클수록 광역 내부에서 시·구별 격차가 큼</p></div>
+        <div class="right">CV = σ / μ</div>
+      </div>
+      <table class="tbl">
+        <thead>
+          <tr><th>#</th><th>광역</th><th class="num">시·구 수</th><th class="num">최대값(B)</th><th class="num">최소값(B)</th><th class="num">최대/최소</th><th class="num">변동계수</th><th>편차 시각화</th></tr>
+        </thead>
+        <tbody id="varianceTable"></tbody>
+      </table>
+    </div>
+    <div class="insight-block" style="--insight-color:#fb923c">
+      <div class="label">SAM Insight · 광역 단위의 한계</div>
+      <h4>"광역 단위 마케팅"이 작동하는 광역과 무력한 광역이 명확히 구분된다</h4>
+      <p>
+        편차가 작은 광역(충북·전남·강원 등)은 <strong>거점 도시 1~2곳에 집중</strong>하면 광역 전체에 도달 가능합니다. 반면 편차가 매우 큰 서울·경기는 <strong>구·시 단위 마이크로 타겟팅</strong> 외엔 답이 없습니다.
+      </p>
+      <p>
+        광역 단위 일률 캠페인은 편차 작은 광역에서만 ROI가 나오고, 편차 큰 광역에서는 예산 낭비로 직결됨을 데이터로 확인할 수 있습니다.
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════ § 12. 지도 ═══════ -->
+  <div class="section" id="map">
+    <div class="section-header">
+      <span class="section-num">§ 12</span>
+      <span class="section-title">전국 광역 분포 지도</span>
+      <span class="section-desc">17개 시·도 AUM 농도 지리적 시각화</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>광역시·도별 AUM 히트 맵</h3><p>색상이 진할수록 보유 평가액 높음 · 마우스오버로 상세 확인</p></div>
+        <div class="right">SCALE: AUM 절대값</div>
+      </div>
+      <div class="map-wrap">
+        <div class="map-svg-wrap">
+          <div class="map-tooltip" id="mapTooltip"></div>
+          <svg viewBox="0 0 400 500" id="koreaMap" xmlns="http://www.w3.org/2000/svg">
+            <!-- 단순화된 한국 광역 SVG 영역들 -->
+            <!-- 강원 -->
+            <rect class="map-region" data-name="강원" x="240" y="60" width="110" height="90" rx="12"></rect>
+            <text class="map-label" x="295" y="110">강원</text>
+            <!-- 경기 -->
+            <rect class="map-region" data-name="경기" x="155" y="80" width="80" height="100" rx="12"></rect>
+            <text class="map-label" x="195" y="135">경기</text>
+            <!-- 서울 -->
+            <rect class="map-region" data-name="서울" x="170" y="105" width="40" height="30" rx="6"></rect>
+            <text class="map-label" x="190" y="123">서울</text>
+            <!-- 인천 -->
+            <rect class="map-region" data-name="인천" x="120" y="115" width="32" height="35" rx="8"></rect>
+            <text class="map-label" x="136" y="136">인천</text>
+            <!-- 충북 -->
+            <rect class="map-region" data-name="충북" x="200" y="185" width="80" height="55" rx="10"></rect>
+            <text class="map-label" x="240" y="216">충북</text>
+            <!-- 충남 -->
+            <rect class="map-region" data-name="충남" x="115" y="185" width="80" height="55" rx="10"></rect>
+            <text class="map-label" x="155" y="216">충남</text>
+            <!-- 세종 -->
+            <rect class="map-region" data-name="세종" x="170" y="205" width="28" height="22" rx="6"></rect>
+            <text class="map-label" x="184" y="220" style="font-size:8px">세종</text>
+            <!-- 대전 -->
+            <rect class="map-region" data-name="대전" x="180" y="245" width="36" height="26" rx="6"></rect>
+            <text class="map-label" x="198" y="262">대전</text>
+            <!-- 경북 -->
+            <rect class="map-region" data-name="경북" x="285" y="155" width="100" height="100" rx="12"></rect>
+            <text class="map-label" x="335" y="208">경북</text>
+            <!-- 대구 -->
+            <rect class="map-region" data-name="대구" x="285" y="260" width="42" height="32" rx="6"></rect>
+            <text class="map-label" x="306" y="280">대구</text>
+            <!-- 울산 -->
+            <rect class="map-region" data-name="울산" x="345" y="270" width="40" height="28" rx="6"></rect>
+            <text class="map-label" x="365" y="288">울산</text>
+            <!-- 부산 -->
+            <rect class="map-region" data-name="부산" x="320" y="305" width="50" height="30" rx="6"></rect>
+            <text class="map-label" x="345" y="324">부산</text>
+            <!-- 경남 -->
+            <rect class="map-region" data-name="경남" x="225" y="290" width="90" height="65" rx="10"></rect>
+            <text class="map-label" x="270" y="325">경남</text>
+            <!-- 전북 -->
+            <rect class="map-region" data-name="전북" x="115" y="245" width="100" height="55" rx="10"></rect>
+            <text class="map-label" x="165" y="276">전북</text>
+            <!-- 광주 -->
+            <rect class="map-region" data-name="광주" x="130" y="305" width="42" height="28" rx="6"></rect>
+            <text class="map-label" x="151" y="323">광주</text>
+            <!-- 전남 -->
+            <rect class="map-region" data-name="전남" x="115" y="335" width="105" height="65" rx="10"></rect>
+            <text class="map-label" x="167" y="370">전남</text>
+            <!-- 제주 -->
+            <rect class="map-region" data-name="제주" x="145" y="430" width="90" height="42" rx="10"></rect>
+            <text class="map-label" x="190" y="455">제주</text>
+          </svg>
+        </div>
+        <div class="map-side">
+          <div class="legend-list">
+            <div class="scale-title">AUM 스케일</div>
+            <div class="legend-row"><span class="sw" style="background:#1d3a8a"></span>500B+ (최상위)</div>
+            <div class="legend-row"><span class="sw" style="background:#2451d3"></span>100~500B</div>
+            <div class="legend-row"><span class="sw" style="background:#5b8def"></span>30~100B</div>
+            <div class="legend-row"><span class="sw" style="background:#93b9ff"></span>10~30B</div>
+            <div class="legend-row"><span class="sw" style="background:#cdddf7"></span>~10B</div>
+          </div>
+          <div style="font-size:12px;color:var(--text-2);line-height:1.65">
+            <p style="margin-bottom:10px"><strong style="color:var(--text)">서울·경기 두 광역</strong>이 색상이 가장 진하게 표시되며, 전국 AUM의 73%를 차지하는 압도적 집중 구조를 시각적으로 확인할 수 있습니다.</p>
+            <p>제주·세종은 가장 옅은 색으로, 시장 침투가 거의 일어나지 않은 미개척 영역임을 한눈에 파악 가능합니다.</p>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:16px;line-height:1.5">
+        ※ 본 지도는 직관적 비교를 위한 단순화된 도형 기반 시각화. 정밀 GeoJSON 기반 지도는 별도 제작 가능.
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 13. 종목 페어 비교 ═══════ -->
+  <div class="section" id="pair">
+    <div class="section-header">
+      <span class="section-num">§ 13</span>
+      <span class="section-title">종목 페어 직접 비교</span>
+      <span class="section-desc">두 종목을 광역별로 좌·우 분할 비교</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>광역별 점유 — 어느 지역에서 어느 종목이 우세한가</h3><p>두 종목을 선택하면 각 광역의 보유액을 비례 막대로 비교</p></div>
+      </div>
+      <div class="pair-toggle-row">
+        <span class="label">LEFT:</span>
+        <select class="pair-select" id="pairLeft">
+          <option value="0">KODEX 반도체</option>
+          <option value="1">KODEX 레버리지</option>
+          <option value="2">KODEX AI반도체 (→TOP2+)</option>
+          <option value="3">TIGER 반도체</option>
+          <option value="4" selected>TIGER TOP10</option>
+          <option value="5">TIGER 레버리지</option>
+        </select>
+        <span class="label">VS</span>
+        <span class="label">RIGHT:</span>
+        <select class="pair-select" id="pairRight">
+          <option value="0" selected>KODEX 반도체</option>
+          <option value="1">KODEX 레버리지</option>
+          <option value="2">KODEX AI반도체 (→TOP2+)</option>
+          <option value="3">TIGER 반도체</option>
+          <option value="4">TIGER TOP10</option>
+          <option value="5">TIGER 레버리지</option>
+        </select>
+      </div>
+      <div class="pair-header">
+        <div class="h-l" id="pairHL">TIGER TOP10</div>
+        <div class="h-c">광역</div>
+        <div class="h-r" id="pairHR">KODEX 반도체</div>
+      </div>
+      <div class="pair-bars" id="pairBars"></div>
+    </div>
+    <div class="insight-block" style="--insight-color:#5b8def">
+      <div class="label">SAM Insight · 페어 비교 활용법</div>
+      <h4>경쟁 종목 비교는 "지역 침투 격차"를 한눈에 보여준다</h4>
+      <p>
+        TIGER TOP10 vs KODEX 반도체를 비교하면, 비수도권 광역에서 TIGER가 압도적으로 강세인 반면 수도권 IT 벨트(경기·서울)에서는 KODEX가 상대적으로 점유율을 회복합니다.
+        이런 페어 비교는 <strong>"어느 지역에서 어느 종목으로 싸울 것인가"</strong>의 의사결정 프레임을 만들어줍니다.
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════ § 14. 연령 × 성별 매트릭스 ═══════ -->
+  <div class="section" id="agesex">
+    <div class="section-header">
+      <span class="section-num">§ 14</span>
+      <span class="section-title">연령 × 성별 매트릭스</span>
+      <span class="section-desc">5×2 핵심 매트릭스 — 시장의 진짜 모집단</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>연령대 × 성별 — 보유 패턴</h3><p>전체 61,335명을 5개 연령대 × 남/여 10개 셀로 분해. 토글로 측정값 전환.</p></div>
+      </div>
+      <div class="filter-row" id="ageSexToggle">
+        <span class="pill" data-metric="amt">총보유금액</span>
+        <span class="pill" data-metric="cnt">보유 인원</span>
+        <span class="pill active" data-metric="perCap">1인당 보유금액</span>
+      </div>
+      <div id="ageSexMatrix"></div>
+    </div>
+    <div class="insight-block" style="--insight-color:#f43f5e">
+      <div class="label">SAM Insight · 세그먼트 비대칭</div>
+      <h4>"평균 956만원" 뒤에 14배 격차가 숨어있다</h4>
+      <p>
+        60대이상 남성 1인당 <strong>2,564만원</strong> vs 20대 여성 <strong>185만원</strong> — 같은 시장 안에서 <strong>약 14배의 객단가 격차</strong>가 존재합니다.
+        남성 평균(1,591만) vs 여성 평균(535만)도 약 3배 차이. 단일 평균값으로 시장을 읽으면 <strong>핵심 의사결정이 모두 빗나갑니다</strong>.
+      </p>
+      <p>
+        흥미로운 건 <strong>"인원 vs 금액" 역전</strong>입니다. 인원 기준 1위는 50대 여성(10,873명), 금액 기준 1위는 50대 남성(1,367억).
+        같은 50대인데도 행동 패턴(액티브 매매 vs 안정형)이 완전히 다른 두 풀로 나뉩니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>마케팅 메시지를 "전 연령 통합" 대신 <strong>10개 셀별로 분리 제작</strong> — 같은 ETF도 50대 남성에겐 "포트폴리오 비중", 20대 여성에겐 "월 10만원 시작"</li>
+          <li>50대 여성 10,873명은 <strong>인원 최대 풀이지만 객단가 653만원에 정체</strong> — 적립식·자동투자로 단가 증가 캠페인 1순위</li>
+          <li>60대+ 남성 3,775명은 <strong>"숫자는 적지만 평균 2,564만"</strong> — 별도 프라이빗 채널·세제 안내 강화</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 15. 종목 × 연령 분포 ═══════ -->
+  <div class="section" id="prodage">
+    <div class="section-header">
+      <span class="section-num">§ 15</span>
+      <span class="section-title">종목 × 연령 분포</span>
+      <span class="section-desc">각 종목의 연령별 보유 패턴 = 종목별 페르소나</span>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><div class="left"><h3>종목별 연령 구성 (AUM 누적)</h3><p>각 종목이 어떤 연령대에 두께를 형성하는지</p></div></div>
+        <div class="chart-wrap h-400"><canvas id="prodAgeStack"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="left"><h3>종목별 연령대 1인당 보유액</h3><p>같은 종목 안에서 연령에 따른 객단가 변화 곡선</p></div></div>
+        <div class="chart-wrap h-400"><canvas id="prodAgePerCap"></canvas></div>
+      </div>
+    </div>
+    <div class="insight-block" style="--insight-color:#fbbf24">
+      <div class="label">SAM Insight · 종목별 페르소나</div>
+      <h4>같은 "반도체 ETF"라도 종목마다 모이는 사람이 다르다</h4>
+      <p>
+        <strong>KODEX 레버리지·TIGER TOP10 레버리지</strong>는 50대 남성에 두께가 집중되며, 20대는 거의 보유하지 않습니다 — "액티브 트레이딩" 페르소나.
+        <strong>KODEX AI반도체</strong>는 모든 연령대에 비교적 균질하게 분포 — "테마 친화적" 페르소나로 신규 유입에 유리합니다.
+        <strong>TIGER TOP10</strong>은 20·30대에서도 보유 비중이 높음 — 사실상 <strong>"국민 반도체 ETF"</strong>로 자리 잡은 모습입니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>레버리지 2종 마케팅은 <strong>40~50대 남성 중심 채널</strong>(증권 유튜브, 트레이딩 커뮤니티)로 배분</li>
+          <li>AI반도체TOP2+ 리브랜딩은 30~40대 풀의 객단가 끌어올리는 메시지가 가장 효율적</li>
+          <li>젊은 층(20~30대) 신규 유입은 TIGER TOP10이 가장 친숙한 진입로 — KODEX는 "다음 단계 업그레이드 상품"으로 포지셔닝</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 16. 종목 × 성별 편향 ═══════ -->
+  <div class="section" id="sexbias">
+    <div class="section-header">
+      <span class="section-num">§ 16</span>
+      <span class="section-title">종목 × 성별 편향도</span>
+      <span class="section-desc">레버리지 = 남성, 일반 = 균형 — 명확한 페르소나 구분</span>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="left"><h3>종목별 남·여 보유금액 비중</h3><p>각 종목 안에서 남성과 여성이 차지하는 AUM 비율</p></div></div>
+      <div id="sexBiasChart"></div>
+    </div>
+    <div class="insight-block" style="--insight-color:#5b8def">
+      <div class="label">SAM Insight · 성별 편향의 의미</div>
+      <h4>"레버리지일수록 남성, 일반일수록 균형" — 이 패턴이 곧 마케팅 채널이다</h4>
+      <p>
+        TIGER TOP10 레버리지는 <strong>남성 87.0%</strong>, KODEX 레버리지 78.5%로 극심한 남성 편향. 반면 일반 KODEX 반도체·TIGER TOP10은 60% 내외로 비교적 균형.
+        이는 단순 통계가 아니라 <strong>"단일 종목 레버리지 = 남성 액티브 투자자"</strong>라는 페르소나가 데이터로 확인된 것이며,
+        5월 말 상장하는 <strong>삼성전자/SK하이닉스 레버리지의 핵심 타겟이 누구인지</strong>를 명확히 알려줍니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>단일종목 레버리지 2종(삼전·하이닉스 LEV) 마케팅 — 채널 우선순위: <strong>남성 트레이딩 유튜브 → 증권 커뮤니티 → MTS 푸시</strong></li>
+          <li>여성 비중이 상대적으로 높은 KODEX AI반도체·TIGER TOP10에 <strong>"포트폴리오 입문" 메시지</strong> 강화</li>
+          <li>레버리지 상품 설명 자료에는 변동성 위험 경고를 더 강하게 — 액티브 남성은 위험 감수 성향이 높음을 데이터로 확인 (사회적 책임)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 17. VVIP 풀 (60대+ × 레버리지) ═══════ -->
+  <div class="section" id="vvip">
+    <div class="section-header">
+      <span class="section-num">§ 17</span>
+      <span class="section-title">VVIP 풀 — 60대+ × 레버리지</span>
+      <span class="section-desc">1인당 1.6억원, 시장 최고 객단가 세그먼트</span>
+    </div>
+
+    <div class="vvip-stats">
+      <div class="vvip-card">
+        <div class="lab">60대+ 남성 · KODEX 레버리지 1인당</div>
+        <div class="val" id="vvipMaleAvg">—</div>
+        <div class="desc">전체 평균(956만원)의 <strong>약 17배</strong>. 시장에서 가장 높은 단일 객단가 세그먼트.</div>
+      </div>
+      <div class="vvip-card">
+        <div class="lab">60대+ 여성 · KODEX 레버리지 1인당</div>
+        <div class="val" id="vvipFemaleAvg">—</div>
+        <div class="desc">남성 못지않은 객단가. 인원은 적어도 1명당 임팩트 매우 큼.</div>
+      </div>
+      <div class="vvip-card">
+        <div class="lab">VVIP 풀 총 인원</div>
+        <div class="val" id="vvipTotalCnt">—</div>
+        <div class="desc">KODEX 레버리지 60대+ 보유자 전체. 별도 트랙으로 관리 가능한 규모.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="left"><h3>광역별 레버리지 AUM × 60대+ 인원</h3><p>VVIP 풀이 가장 두꺼운 광역</p></div></div>
+      <div id="vvipTable"></div>
+    </div>
+
+    <div class="insight-block" style="--insight-color:#f43f5e">
+      <div class="label">SAM Insight · VVIP 풀의 진짜 의미</div>
+      <h4>"154명이 시장의 대부분을 책임진다" — 이 풀을 지키는 게 곧 AUM 안정성</h4>
+      <p>
+        60대+ 남성 KODEX 레버리지 보유자 107명의 1인당이 <strong>1.6억원</strong>이라는 건, <strong>이 100여 명의 행동 한 번이 전체 AUM을 흔들 수 있다</strong>는 의미입니다.
+        반대로 이 풀에 새로운 상품(특히 5월 말 상장 예정인 삼성전자·SK하이닉스 단일종목 레버리지)을 효과적으로 노출하면 <strong>1인 1.6억급 전환</strong>이 가능합니다.
+      </p>
+      <p>
+        지역적으로는 <strong>서울·경기에 집중</strong>되어 있어 오프라인 PB 채널과 결합한 프라이빗 IR이 가능한 규모입니다.
+        대중 채널 마케팅으로는 절대 도달할 수 없는 풀이며, <strong>전담 RM(Relationship Manager) 운영이 ROI상 정당화</strong>되는 유일한 세그먼트입니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>VVIP 풀 154명 전원 대상 <strong>"신규 단일종목 레버리지 사전 안내" 1:1 IR</strong> — 5월 22일 상장 D-7부터 가동</li>
+          <li>증권사 VIP 팀과 공동 RM 프로그램 검토 — 1인 1.6억급 풀은 PB 채널 매칭 가치 충분</li>
+          <li>VVIP 풀 이탈 모니터링 KPI 신설 — 분기당 환매 5% 초과 시 즉시 retention 캠페인 트리거</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 18. 20대 여성 신규 풀 ═══════ -->
+  <div class="section" id="newpool">
+    <div class="section-header">
+      <span class="section-num">§ 18</span>
+      <span class="section-title">20대 여성 — 미개척 신규 풀</span>
+      <span class="section-desc">진입은 했지만 객단가 정체된 4,300명</span>
+    </div>
+
+    <div class="f20-summary">
+      <div class="f20-card">
+        <div class="lab">20대 여성 보유자 수</div>
+        <div class="val" id="f20TotalCnt">—</div>
+        <div class="desc">시장 전체에서 <strong>가장 큰 단일 신규 유입 풀</strong>. 객단가는 낮아도 학습 가능성 가장 높음.</div>
+      </div>
+      <div class="f20-card">
+        <div class="lab">20대 여성 1인당 보유</div>
+        <div class="val" id="f20PerCap">—</div>
+        <div class="desc">전체 평균 956만원 대비 <strong>1/5 수준</strong>. 진입 장벽 가장 낮은 구간 — 학습·습관 형성 단계.</div>
+      </div>
+      <div class="f20-card">
+        <div class="lab">전체 여성 중 비중</div>
+        <div class="val" id="f20PctOfWomen">—</div>
+        <div class="desc">여성 보유자의 약 1/8이 20대. <strong>30·40대로 자연 이동</strong>할 풀의 시작점.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="left"><h3>광역별 20대 여성 인원 분포</h3><p>이 풀이 어디에 가장 많이 거주하는가 — 디지털 캠페인 타겟팅 거점</p></div></div>
+      <div id="f20Section"></div>
+    </div>
+
+    <div class="insight-block" style="--insight-color:#14b8a6">
+      <div class="label">SAM Insight · 신규 유입 풀의 가치</div>
+      <h4>"지금 195만원이지만 10년 후 5,000만원 풀"이 될 수 있다 — 장기 LTV 관점</h4>
+      <p>
+        20대 여성 4,300명은 단기 AUM 임팩트는 작지만, <strong>이 풀이 30·40대로 성장하며 객단가가 자연 상승</strong>합니다.
+        실제로 같은 여성 풀에서 50대 객단가는 653만원, 60대는 1,134만원으로 <strong>연령이 올라갈수록 단가가 명확히 증가</strong>합니다.
+        지금 20대 여성에게 KODEX·TIGER 브랜드 노출을 확보하면, 향후 10~20년간 충성 보유자가 됩니다 — <strong>LTV(Life Time Value) 관점의 투자</strong>입니다.
+      </p>
+      <p>
+        지역적으로는 <strong>서울·경기에 70% 이상 집중</strong>되어 있어 디지털 광고 효율이 매우 높습니다.
+        특히 인스타그램·유튜브·카카오톡 같은 모바일 채널과 매칭이 잘 되는 풀입니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>20대 여성 풀 대상 <strong>"월 10만원 적립식 자동투자" 캠페인</strong>을 KODEX 라인업 우선 출시 — TIGER TOP10에 빼앗기지 않도록 선제 대응</li>
+          <li>인스타·유튜브 숏폼 광고 — 톤은 "투자 입문" 친근한 컨셉, ETF 용어 최소화</li>
+          <li>3년 후 이 풀의 30대 진입 시점에 객단가가 평균 300만원 이상으로 증가하는지 KPI 추적</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 19. 시·도 × 연령 매트릭스 ═══════ -->
+  <div class="section" id="sidoage">
+    <div class="section-header">
+      <span class="section-num">§ 19</span>
+      <span class="section-title">시·도 × 연령 인구통계 매핑</span>
+      <span class="section-desc">17개 광역의 5개 연령대 1인당 보유액 매트릭스</span>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="left"><h3>광역 × 연령대 — 1인당 보유액(만원)</h3><p>각 셀: 해당 광역의 해당 연령대 평균 객단가. 색상이 진할수록 객단가 높음.</p></div></div>
+      <div id="sidoAgeMatrix"></div>
+    </div>
+    <div class="insight-block" style="--insight-color:#fb923c">
+      <div class="label">SAM Insight · 지역별 인구통계 패턴</div>
+      <h4>"같은 60대라도 서울·경기와 지방은 다른 시장이다"</h4>
+      <p>
+        매트릭스를 보면 <strong>서울·경기의 60대+ 객단가가 압도적</strong>으로 높습니다 — 단순히 인구 효과가 아니라 <strong>"수도권 거주 = 누적 자산 형성"</strong>의 결과입니다.
+        반면 지방 광역에서는 50대가 60대보다 객단가가 높은 경우(대구·울산 등)가 자주 나타나는데, 이는 <strong>은퇴 후 자산 축소·환매</strong>가 수도권보다 빠르게 진행되는 패턴을 보여줍니다.
+      </p>
+      <p>
+        충북 20대 남성의 1,145만원은 이상치(outlier)로 보이며, <strong>특정 지역의 산업 종사자 거주 영향</strong>일 가능성이 큽니다 (충북=SK하이닉스 본사).
+        이런 이상치를 발견하는 게 곧 새로운 마케팅 거점을 찾는 일입니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>광역별 메시지를 <strong>"이 광역의 50대 OR 60대 풀에 맞춰 차별화"</strong> — 서울 60대는 자산 배분, 부산 60대는 인컴 안정 메시지</li>
+          <li>충북 20대 남성 같은 이상치 풀은 별도 분석 — 산업단지 종사자 직접 노출 채널 검토</li>
+          <li>지방 광역 50대는 인원이 두꺼운 풀 — 이 풀의 환매 패턴을 추적해 retention 시점 예측</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STRATEGY -->
+<div class="strategy-section" id="strategy">
+  <div class="container">
+    <div class="strategy-tag">◆ STRATEGY · 다음 한 분기 실행 과제</div>
+    <h2>데이터 기반 8대 전략 과제</h2>
+    <p class="sub">위 분석을 바탕으로 ETF 기획팀이 즉시 실행 가능한 8가지 우선순위 과제를 도출했습니다. 신규 데이터(연령·성별 5차원)에서 도출된 세그먼트 전략 3가지가 추가되었습니다.</p>
+
+    <div class="strategy-grid">
+      <div class="strategy-card">
+        <span class="priority high">PRIORITY · HIGH</span>
+        <h3>① KODEX AI반도체TOP2+ 리브랜딩 임팩트 극대화</h3>
+        <p class="opp">5월 명칭 변경되는 <strong>KODEX AI반도체TOP2+</strong>는 KODEX 라인업 중 보유 인원이 가장 두꺼운 상품(6,907명). 데이터상 <strong>30·40대 풀이 균질하게 분포</strong>하여 리브랜딩 메시지 도달률이 가장 큰 카드입니다.</p>
+        <div class="actions">
+          <div class="a-label">▣ 실행 단계</div>
+          <ol>
+            <li>명칭 변경 D-day에 기존 보유자 6,907명 전원 MTS·이메일 알림 발송 ("TOP2+ 컨셉이란 무엇인가" 인포그래픽 동봉)</li>
+            <li>천안·화성·수원 등 기존 KODEX AI반도체 강세 지역 영업 채널에 리브랜딩 IR 자료 우선 배포</li>
+            <li>리브랜딩 후 4주간 신규 매수 인원·AUM 증가율 추적, 전월 대비 +15% 이상을 KPI로 설정</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="strategy-card">
+        <span class="priority high">PRIORITY · HIGH</span>
+        <h3>② KODEX 반도체위클리커버드콜 — 50대+ 인컴 라인 거점화</h3>
+        <p class="opp">5월 신규 출시되는 <strong>KODEX 반도체위클리커버드콜</strong>은 인컴형 상품. 데이터상 <strong>50대 인원 18,332명(전체의 30%)</strong>이 시장 핵심 풀로, 자산 안정화 니즈가 큰 풀이 명확합니다.</p>
+        <div class="actions">
+          <div class="a-label">▣ 실행 단계</div>
+          <ol>
+            <li>KODEX 반도체·KODEX 레버리지 보유자 중 50대+ 세그먼트 추출, "성장→인컴 분산" 메시지로 사전 안내</li>
+            <li>대전 유성구·경남 창원시·충북 청주시 등 1인당 보유금액 평균 이상 지방 거점에 인컴형 IR 자료 별도 배포</li>
+            <li>출시 후 1개월 내 "기존 KODEX 보유자 → 위클리CC 동시 보유" 비율 KPI 20% 이상</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="strategy-card">
+        <span class="priority high">PRIORITY · HIGH</span>
+        <h3>③ 삼성전자 · SK하이닉스 레버리지 — 남성 액티브 풀 정조준</h3>
+        <p class="opp">5월 말 동시 상장하는 <strong>KODEX 삼성전자 레버리지 · KODEX SK하이닉스 레버리지</strong>는 데이터로 입증된 <strong>남성 87% 편향 풀</strong>이 타겟. 화성·수원·이천·평택·청주 IT 벨트 + 40~50대 남성 페르소나가 1차 모객 풀입니다.</p>
+        <div class="actions">
+          <div class="a-label">▣ 실행 단계</div>
+          <ol>
+            <li>KODEX 반도체 보유자 중 화성·수원·이천·평택·청주 + 40~50대 남성 세그먼트 추출, 상장 D-7부터 "단일종목 직접 노출" 메시지 발송</li>
+            <li>마케팅 채널: 남성 트레이딩 유튜브 → 증권 커뮤니티 → MTS 푸시 순 우선순위</li>
+            <li>삼성전자 LEV는 화성·수원(삼성 캠퍼스 인접), SK하이닉스 LEV는 이천·청주(SK 본사 인접) 우선 노출</li>
+            <li>상장 후 1개월 내 두 종목 합산 AUM 100B 돌파 KPI</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="strategy-card">
+        <span class="priority high">PRIORITY · HIGH · NEW</span>
+        <h3>④ VVIP 풀 154명 — 1인 1.6억급 별도 트랙</h3>
+        <p class="opp"><strong>60대 이상 × KODEX 레버리지 보유자 154명</strong>이 1인당 평균 <strong>1.6억원</strong>을 보유. 시장 전체 평균(956만원)의 17배. 이 풀의 행동 한 번이 AUM 안정성을 좌우하므로 별도 retention 트랙 필수.</p>
+        <div class="actions">
+          <div class="a-label">▣ 실행 단계</div>
+          <ol>
+            <li>VVIP 154명 전원 대상 5월 말 단일종목 LEV 상장 사전 1:1 IR — D-7부터 가동</li>
+            <li>증권사 VIP 팀과 공동 RM(Relationship Manager) 프로그램 검토 — PB 채널 매칭</li>
+            <li>VVIP 풀 환매 모니터링 KPI 신설 — 분기당 5% 초과 시 즉시 retention 트리거</li>
+            <li>5/22 단일종목 LEV 상장 시 VVIP 우선 사전 매수 권한 검토</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="strategy-card">
+        <span class="priority med">PRIORITY · MEDIUM · NEW</span>
+        <h3>⑤ 20대 여성 4,300명 — 적립식 자동투자 LTV 캠페인</h3>
+        <p class="opp">시장 최대 신규 유입 풀이지만 <strong>1인당 185만원에 정체</strong>. 단기 AUM 임팩트는 작지만 <strong>10년 후 30·40대로 성장하며 객단가 자연 상승</strong>하는 LTV(Life Time Value) 풀입니다. 지금 KODEX 브랜드 노출 확보가 향후 충성 보유자 확보로 직결됩니다.</p>
+        <div class="actions">
+          <div class="a-label">▣ 실행 단계</div>
+          <ol>
+            <li>"월 10만원 KODEX 적립식" 캠페인 — TIGER TOP10에 빼앗기지 않도록 선제 출시</li>
+            <li>인스타그램·유튜브 숏폼 광고 — 톤은 "투자 입문" 친근한 컨셉, ETF 용어 최소화</li>
+            <li>3년 후 이 풀의 30대 진입 시 객단가 평균 300만원 이상 증가 KPI 추적</li>
+            <li>광역 분포: 서울·경기 70% 집중 → 디지털 광고 효율 극대화 가능</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="strategy-card">
+        <span class="priority med">PRIORITY · MEDIUM · NEW</span>
+        <h3>⑥ 50대 여성 10,873명 — 인원 최대 풀의 객단가 끌어올리기</h3>
+        <p class="opp">시장 단일 최대 인원 세그먼트(50대 여성). 그러나 1인당 <strong>653만원으로 평균 미만에서 정체</strong>. 50대 남성(1,833만원) 대비 1/3 수준. 이 풀의 객단가만 평균 수준으로 올려도 시장 임팩트 매우 큼.</p>
+        <div class="actions">
+          <div class="a-label">▣ 실행 단계</div>
+          <ol>
+            <li>50대 여성 풀 대상 "노후 자산 + 인컴" 메시지 — KODEX 위클리CC 1순위 노출</li>
+            <li>광주·대구 등 50대 여성 비중 큰 광역 별도 IR 트랙</li>
+            <li>적립식 → 일시납 전환 캠페인으로 평균 단가 +50% 이상 KPI</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="strategy-card">
+        <span class="priority med">PRIORITY · MEDIUM</span>
+        <h3>⑦ KODEX 4축 funnel — 라이프사이클 전 구간 커버</h3>
+        <p class="opp">5월 라인업 정비 후 KODEX는 <strong>"성장(레버리지) → 핵심(반도체·AI TOP2+) → 인컴(위클리CC) → 단일종목(삼전·하이닉스 LEV)"</strong> 4축 구조 완성. 새 데이터로 확인된 연령별 페르소나를 funnel에 매핑하면 자연 이동 경로가 명확해집니다.</p>
+        <div class="actions">
+          <div class="a-label">▣ 실행 단계</div>
+          <ol>
+            <li>4축 funnel × 연령 매핑 비주얼 통합 인포그래픽 제작 (20대=AI반도체 → 50대=레버리지·단일종목 → 60대=위클리CC)</li>
+            <li>MTS 추천 모듈 연동 — 보유자 연령·기존 종목별 다음 상품 자동 추천</li>
+            <li>4축 모두 보유 고객에게 "KODEX 컬렉터" 로열티 프로그램 검토</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="strategy-card">
+        <span class="priority low">PRIORITY · LOW (LONG-TERM)</span>
+        <h3>⑧ 비수도권 디지털 풀퍼널 채널 구축</h3>
+        <p class="opp">제주·강원·전남 합산이 전국의 <strong>약 2.4%</strong>. 오프라인 영업으로는 비용효율 확보 어려움. <strong>MTS 푸시·유튜브·네이버 타겟 광고</strong>를 활용한 디지털 풀퍼널이 현실적입니다.</p>
+        <div class="actions">
+          <div class="a-label">▣ 실행 단계</div>
+          <ol>
+            <li>지방 광역 거주자 대상 MTS 내 ETF 메뉴 노출 우선순위 조정 — 위클리CC 신상품 첫 화면 노출</li>
+            <li>지역 × 연령별 인구통계 매핑(§19)에 맞춘 디지털 광고 크리에이티브 분리</li>
+            <li>1년 후 지방 광역 합산 AUM 비중 +50% 돌파 중기 KPI</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <h4>SAM ETF Intelligence</h4>
+      <p>삼성자산운용 ETF 기획팀의 내부 분석 도구. 전국 시·도·시·군·구 단위 데이터 기반의 정밀 시장 분석 및 실행 전략 제시.</p>
+    </div>
+    <div class="footer-section">
+      <h5>SECTIONS</h5>
+      <ul>
+        <li>§01-04 종목 · 광역 · 시·구</li>
+        <li>§05-07 산점도 · 1인당 · 수도권</li>
+        <li>§08-10 분포 · 산업 · 집중도</li>
+        <li>§11-13 편차 · 지도 · 페어</li>
+        <li>§14 AGE × SEX (NEW)</li>
+        <li>§15 종목 × 연령 (NEW)</li>
+        <li>§16 종목 × 성별 (NEW)</li>
+        <li>§17 VVIP 풀 (NEW)</li>
+        <li>§18 20대 여성 (NEW)</li>
+        <li>§19 시·도 × 연령 (NEW)</li>
+      </ul>
+    </div>
+    <div class="footer-section">
+      <h5>METADATA</h5>
+      <ul>
+        <li>VERSION · 6.0</li>
+        <li>DATE · 2026.05.06</li>
+        <li>OWNER · ETF PLANNING</li>
+        <li>STATUS · CONFIDENTIAL</li>
+        <li>DATA · 5차원</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-meta">
+    <span>SOURCE: 삼성자산운용 내부 집계 · 6개 반도체 ETF 통합 데이터</span>
+    <span>CONFIDENTIAL · DO NOT DISTRIBUTE</span>
+  </div>
+</footer>
+
+<script src="app.js"></script>
 </body>
 </html>
