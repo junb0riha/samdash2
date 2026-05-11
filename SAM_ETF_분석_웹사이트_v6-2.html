@@ -1,0 +1,3084 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAM ETF Intelligence — 반도체 ETF 보유현황 정밀 분석</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  // Fallback: jsdelivr가 차단되면 unpkg로 시도
+  if (typeof Chart === 'undefined') {
+    document.write('<script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js"><\/script>');
+  }
+</script>
+<style>@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Noto+Serif+KR:wght@500;700&display=swap');
+
+/* DARK MODE (기본) */
+:root, [data-theme="dark"] {
+  --bg: #07090f; --bg2: #0c1018;
+  --surface: #11151f; --surface2: #161c2a; --surface3: #1c2436;
+  --border: #1f2940; --border-strong: #2c3a5a;
+  --text: #e5edff; --text-2: #a1adc7; --text-3: #6b7894; --text-dim: #4a5572;
+  --accent: #5b8def; --accent-warm: #fbbf24;
+  --good: #10b981; --warn: #fbbf24; --bad: #f43f5e;
+  --gradient-bg-1: rgba(91,141,239,0.08);
+  --gradient-bg-2: rgba(251,146,60,0.06);
+  --hero-h1-from: #ffffff;
+  --hero-h1-to: #a1adc7;
+  --kpi-card-bg-from: #11151f;
+  --kpi-card-bg-to: #161c2a;
+  --insight-bg-from: #161c2a;
+  --insight-bg-to: rgba(91,141,239,0.05);
+  --tooltip-bg: rgba(7,9,15,0.95);
+  --tooltip-body: #a1adc7;
+  --topbar-bg: rgba(7,9,15,0.85);
+  --confidential-color: #f43f5e;
+  --footer-bg: #0c1018;
+}
+
+/* LIGHT MODE */
+[data-theme="light"] {
+  --bg: #fafbfd; --bg2: #ffffff;
+  --surface: #ffffff; --surface2: #f5f7fb; --surface3: #eef2f7;
+  --border: #e3e8ef; --border-strong: #cdd5e0;
+  --text: #0f172a; --text-2: #475569; --text-3: #64748b; --text-dim: #94a3b8;
+  --accent: #2563eb; --accent-warm: #d97706;
+  --good: #059669; --warn: #d97706; --bad: #dc2626;
+  --gradient-bg-1: rgba(37,99,235,0.05);
+  --gradient-bg-2: rgba(217,119,6,0.04);
+  --hero-h1-from: #0f172a;
+  --hero-h1-to: #475569;
+  --kpi-card-bg-from: #ffffff;
+  --kpi-card-bg-to: #f8fafc;
+  --insight-bg-from: #f5f7fb;
+  --insight-bg-to: rgba(37,99,235,0.04);
+  --tooltip-bg: rgba(15,23,42,0.95);
+  --tooltip-body: #cbd5e1;
+  --topbar-bg: rgba(255,255,255,0.92);
+  --confidential-color: #dc2626;
+  --footer-bg: #f5f7fb;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'IBM Plex Sans KR', sans-serif;
+  font-size: 13px; line-height: 1.6;
+  background-image:
+    radial-gradient(ellipse at top left, var(--gradient-bg-1) 0%, transparent 40%),
+    radial-gradient(ellipse at bottom right, var(--gradient-bg-2) 0%, transparent 40%);
+  background-attachment: fixed;
+  transition: background 0.3s, color 0.3s;
+}
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* TOPBAR */
+.topbar { position: sticky; top:0; z-index:100; background: var(--topbar-bg); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); transition: background 0.3s; }
+.topbar-inner { max-width:1600px; margin:0 auto; padding:16px 32px; display:flex; align-items:center; justify-content:space-between; gap:24px; }
+.brand { display:flex; align-items:center; gap:14px; }
+.logo { width:36px; height:36px; background:linear-gradient(135deg,#5b8def,#fb923c); border-radius:8px; display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px; color:#fff; box-shadow:0 4px 16px rgba(91,141,239,0.3); }
+.brand-text h1 { font-size:14px; font-weight:600; letter-spacing:-0.2px; }
+.brand-text p { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-3); margin-top:1px; letter-spacing:0.5px; }
+.nav-links { display:flex; gap:4px; }
+.nav-links a { padding:6px 12px; font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--text-3); text-decoration:none; border-radius:4px; transition:all 0.15s; letter-spacing:0.5px; }
+.nav-links a:hover { color:var(--text); background:var(--surface2); }
+.topbar-meta { display:flex; align-items:center; gap:16px; }
+.meta-pill { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-2); letter-spacing:0.6px; }
+.meta-pill .dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--good); margin-right:6px; animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+.confidential { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.5px; color:var(--confidential-color); border:1px solid var(--confidential-color); padding:4px 10px; border-radius:3px; }
+
+/* HERO */
+.hero { max-width:1600px; margin:0 auto; padding:80px 32px 60px; }
+.hero-tag { display:inline-block; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--accent); letter-spacing:2px; margin-bottom:24px; padding:6px 14px; border:1px solid rgba(91,141,239,0.3); border-radius:100px; background:rgba(91,141,239,0.05); }
+.hero h1 { font-family:'Noto Serif KR',serif; font-size:52px; font-weight:700; line-height:1.18; letter-spacing:-1.2px; margin-bottom:20px; background:linear-gradient(135deg,var(--hero-h1-from) 0%,var(--hero-h1-to) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; max-width:1100px; }
+.hero h1 em { font-style:italic; background:linear-gradient(135deg,#fbbf24,#fb923c); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.hero .lead { font-size:16px; color:var(--text-2); max-width:760px; line-height:1.7; margin-bottom:36px; }
+.hero-meta { display:flex; gap:32px; margin-top:48px; padding-top:28px; border-top:1px solid var(--border); flex-wrap:wrap; }
+.hero-meta .meta-item { font-family:'JetBrains Mono',monospace; }
+.hero-meta .meta-item .l { font-size:10px; color:var(--text-3); letter-spacing:1.2px; text-transform:uppercase; margin-bottom:4px; }
+.hero-meta .meta-item .v { font-size:14px; color:var(--text); font-weight:500; }
+
+/* UPCOMING BANNER */
+.upcoming-row { margin-top:32px; display:flex; gap:12px; flex-wrap:wrap; }
+.upcoming-pill { display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:100px; font-size:11px; font-family:'JetBrains Mono',monospace; letter-spacing:0.5px; }
+.upcoming-pill .dot { width:6px; height:6px; border-radius:50%; }
+.upcoming-pill.warm { background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); color:#fcd34d; }
+.upcoming-pill.warm .dot { background:#fbbf24; }
+.upcoming-pill.orange { background:rgba(251,146,60,0.1); border:1px solid rgba(251,146,60,0.3); color:#fdba74; }
+.upcoming-pill.orange .dot { background:#fb923c; }
+.upcoming-pill.rose { background:rgba(244,63,94,0.1); border:1px solid rgba(244,63,94,0.3); color:#fda4af; }
+.upcoming-pill.rose .dot { background:#f43f5e; }
+.upcoming-pill strong { color:#fff; font-weight:600; margin-left:2px; }
+
+/* THEME TOGGLE */
+.theme-toggle { display:flex; align-items:center; gap:4px; background:var(--surface2); border:1px solid var(--border); border-radius:100px; padding:3px; }
+.theme-toggle button { background:transparent; border:none; color:var(--text-3); padding:5px 10px; font-size:11px; font-family:'JetBrains Mono',monospace; cursor:pointer; border-radius:100px; transition:all 0.2s; display:flex; align-items:center; gap:5px; letter-spacing:0.3px; }
+.theme-toggle button:hover { color:var(--text); }
+.theme-toggle button.active { background:var(--accent); color:#fff; }
+
+/* SINGLE STOCK LEVERAGE TIMELINE */
+.timeline-section { padding:60px 0 70px; background:linear-gradient(180deg,var(--bg) 0%,var(--gradient-bg-2) 100%); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+.timeline-section .container { padding-bottom:0; }
+.timeline-tag { font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:2px; color:var(--bad); margin-bottom:12px; }
+.timeline-section h2 { font-family:'Noto Serif KR',serif; font-size:34px; font-weight:700; letter-spacing:-1px; margin-bottom:16px; color:var(--text); }
+.timeline-section h2 em { font-style:normal; background:linear-gradient(135deg,var(--accent),var(--bad)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.timeline-section .sub { font-size:14px; color:var(--text-2); max-width:800px; margin-bottom:48px; line-height:1.7; }
+
+/* D-DAY BANNER */
+.dday-banner { background:linear-gradient(135deg,var(--surface) 0%,var(--surface2) 100%); border:1px solid var(--border); border-left:4px solid var(--bad); border-radius:14px; padding:24px 28px; margin-bottom:36px; display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:24px; align-items:center; }
+.dday-banner .item { font-family:'JetBrains Mono',monospace; }
+.dday-banner .item .l { font-size:10px; letter-spacing:1px; color:var(--text-3); margin-bottom:6px; text-transform:uppercase; }
+.dday-banner .item .v { font-size:22px; font-weight:700; color:var(--text); letter-spacing:-0.5px; }
+.dday-banner .item .v.warn { color:var(--bad); }
+.dday-banner .item .v.warn::before { content:'D-'; font-size:14px; color:var(--text-3); margin-right:2px; }
+.dday-banner .item .small { font-size:11px; color:var(--text-3); margin-top:3px; }
+
+/* TIMELINE */
+.timeline { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:40px; position:relative; }
+.timeline::before { content:''; position:absolute; top:30px; left:30px; right:30px; height:2px; background:linear-gradient(90deg,var(--accent) 0%,var(--accent-warm) 35%,var(--bad) 70%,var(--bad) 100%); z-index:0; }
+.timeline-step { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:22px 18px; position:relative; z-index:1; }
+.timeline-step .marker { width:60px; height:60px; border-radius:50%; background:var(--surface); border:3px solid var(--step-color,var(--accent)); display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace; font-weight:700; font-size:11px; color:var(--step-color,var(--accent)); margin:-44px auto 14px; letter-spacing:0.5px; }
+.timeline-step .step-label { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1.5px; color:var(--step-color,var(--accent)); text-align:center; margin-bottom:6px; text-transform:uppercase; font-weight:700; }
+.timeline-step h4 { font-size:14px; font-weight:700; text-align:center; margin-bottom:10px; letter-spacing:-0.3px; color:var(--text); }
+.timeline-step .desc { font-size:11px; color:var(--text-2); line-height:1.6; }
+.timeline-step .actions { margin-top:12px; padding-top:10px; border-top:1px dashed var(--border); }
+.timeline-step .actions li { padding:4px 0 4px 14px; position:relative; font-size:11px; color:var(--text-2); line-height:1.5; list-style:none; }
+.timeline-step .actions li::before { content:'·'; position:absolute; left:4px; color:var(--step-color,var(--accent)); font-weight:700; }
+
+/* TARGET SEGMENT */
+.segment-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:24px; }
+.segment-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px 22px; }
+.segment-card .seg-tag { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1.5px; color:var(--seg-color,var(--accent)); margin-bottom:10px; text-transform:uppercase; padding:3px 8px; background:var(--seg-bg,rgba(91,141,239,0.1)); border-radius:3px; display:inline-block; }
+.segment-card h5 { font-size:15px; font-weight:700; margin-bottom:8px; letter-spacing:-0.3px; color:var(--text); }
+.segment-card .seg-desc { font-size:12px; color:var(--text-2); line-height:1.65; margin-bottom:14px; }
+.segment-card .seg-stats { display:flex; gap:18px; padding-top:12px; border-top:1px dashed var(--border); }
+.segment-card .seg-stats .s { font-family:'JetBrains Mono',monospace; }
+.segment-card .seg-stats .s .l { font-size:9px; color:var(--text-3); margin-bottom:3px; letter-spacing:0.5px; }
+.segment-card .seg-stats .s .v { font-size:15px; font-weight:700; color:var(--seg-color,var(--accent)); }
+
+/* KPI MATRIX */
+.kpi-matrix { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:28px 32px; margin-top:36px; }
+.kpi-matrix h3 { font-family:'Noto Serif KR',serif; font-size:18px; font-weight:700; margin-bottom:6px; color:var(--text); }
+.kpi-matrix .h-sub { font-size:12px; color:var(--text-3); margin-bottom:24px; }
+.kpi-matrix-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+.kpi-target { padding:18px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; }
+.kpi-target .l { font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--text-3); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:8px; }
+.kpi-target .v { font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:700; color:var(--text); letter-spacing:-0.5px; line-height:1; }
+.kpi-target .desc { font-size:11px; color:var(--text-2); margin-top:8px; line-height:1.55; }
+.kpi-target .v.accent { color:var(--accent); }
+.kpi-target .v.warm { color:var(--accent-warm); }
+.kpi-target .v.good { color:var(--good); }
+.kpi-target .v.bad { color:var(--bad); }
+
+@media (max-width:1200px) {
+  .timeline { grid-template-columns:1fr; }
+  .timeline::before { display:none; }
+  .timeline-step .marker { margin-top:0; }
+  .dday-banner { grid-template-columns:1fr 1fr; }
+  .segment-grid { grid-template-columns:1fr; }
+  .kpi-matrix-grid { grid-template-columns:1fr 1fr; }
+}
+
+/* ═══════ NEW METRIC SECTIONS ═══════ */
+
+/* HISTOGRAM (분포) */
+.hist-row { display:flex; align-items:flex-end; gap:8px; height:220px; padding:0 10px; margin-top:12px; }
+.hist-bar-wrap { flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.hist-bar { width:100%; background:linear-gradient(180deg, var(--accent), var(--accent-warm)); border-radius:6px 6px 0 0; position:relative; min-height:6px; transition:all 0.3s; }
+.hist-bar:hover { filter:brightness(1.15); }
+.hist-bar .val { position:absolute; top:-22px; left:50%; transform:translateX(-50%); font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; color:var(--text); white-space:nowrap; }
+.hist-bar .pct { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:'JetBrains Mono',monospace; font-size:10px; color:#fff; font-weight:700; opacity:0.85; }
+.hist-label { font-size:10px; color:var(--text-3); text-align:center; line-height:1.3; font-family:'JetBrains Mono',monospace; }
+
+/* SCATTER WITH INDUSTRY */
+.scatter-legend-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:14px; padding-top:14px; border-top:1px dashed var(--border); }
+.scatter-leg-item { font-size:11px; color:var(--text-2); display:flex; align-items:center; gap:6px; }
+.scatter-leg-item .swatch { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
+/* LORENZ */
+.lorenz-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:18px; padding-top:18px; border-top:1px dashed var(--border); }
+.lorenz-stat { padding:14px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; }
+.lorenz-stat .l { font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--text-3); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:6px; }
+.lorenz-stat .v { font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:700; color:var(--text); letter-spacing:-0.5px; line-height:1; }
+.lorenz-stat .v.warn { color:var(--bad); }
+.lorenz-stat .desc { font-size:11px; color:var(--text-2); margin-top:6px; line-height:1.5; }
+
+/* VARIANCE TABLE */
+.variance-bar-wrap { width:140px; padding:0 10px; }
+.variance-bar { height:6px; background:var(--surface3); border-radius:100px; overflow:hidden; position:relative; }
+.variance-bar .fill { height:100%; background:linear-gradient(90deg, var(--good), var(--warn), var(--bad)); }
+
+/* DIVERSITY GAUGE */
+.div-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+.div-card { padding:22px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; }
+.div-card .head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.div-card .name { font-size:13px; font-weight:700; color:var(--text); }
+.div-card .score { font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; }
+.div-card .score.high { color:var(--good); }
+.div-card .score.mid { color:var(--warn); }
+.div-card .score.low { color:var(--bad); }
+.div-gauge { width:100%; height:8px; background:var(--surface3); border-radius:100px; overflow:hidden; margin-bottom:10px; }
+.div-gauge .fill { height:100%; border-radius:100px; transition:width 1s; }
+.div-card .desc { font-size:11px; color:var(--text-2); line-height:1.5; }
+
+/* MAP (한국 지도) */
+.map-wrap { display:grid; grid-template-columns:1.5fr 1fr; gap:24px; align-items:center; }
+.map-svg-wrap { position:relative; }
+.map-svg-wrap svg { width:100%; height:auto; max-height:520px; }
+.map-region { fill:var(--surface3); stroke:var(--border); stroke-width:0.8; transition:all 0.2s; cursor:pointer; }
+.map-region:hover { stroke:var(--accent); stroke-width:1.5; filter:brightness(1.15); }
+.map-label { font-size:9px; font-family:'JetBrains Mono',monospace; fill:var(--text-2); pointer-events:none; text-anchor:middle; font-weight:600; }
+.map-tooltip { position:absolute; background:var(--surface); border:1px solid var(--border-strong); border-radius:8px; padding:10px 14px; font-size:11px; pointer-events:none; opacity:0; transition:opacity 0.15s; z-index:10; box-shadow:0 8px 24px rgba(0,0,0,0.3); }
+.map-tooltip .name { font-weight:700; color:var(--text); margin-bottom:4px; font-size:12px; }
+.map-tooltip .row { display:flex; justify-content:space-between; gap:14px; font-family:'JetBrains Mono',monospace; color:var(--text-2); margin-top:2px; }
+.map-tooltip .row b { color:var(--text); font-weight:600; }
+.map-side .legend-row { display:flex; align-items:center; gap:8px; padding:6px 0; font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--text-2); }
+.map-side .legend-row .sw { width:18px; height:12px; border-radius:3px; }
+.map-side .scale-title { font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--text-3); letter-spacing:1px; margin-bottom:10px; text-transform:uppercase; }
+.map-side .legend-list { padding:14px 16px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; margin-bottom:18px; }
+
+/* PAIR COMPARE TOGGLE */
+.pair-toggle-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
+.pair-toggle-row .label { font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--text-3); letter-spacing:0.5px; }
+.pair-select { padding:6px 12px; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px; font-family:inherit; font-size:12px; cursor:pointer; }
+.pair-select:focus { outline:none; border-color:var(--accent); }
+
+.pair-bars { display:flex; flex-direction:column; gap:8px; }
+.pair-row { display:grid; grid-template-columns:80px 1fr 80px; align-items:center; gap:12px; padding:6px 0; }
+.pair-row .name { font-size:12px; color:var(--text); font-weight:500; }
+.pair-row .winner-tag { font-size:9px; font-family:'JetBrains Mono',monospace; padding:2px 6px; border-radius:3px; margin-left:6px; letter-spacing:0.3px; }
+.pair-bar-wrap { display:flex; align-items:center; gap:4px; height:24px; }
+.pair-bar-l { background:var(--accent); height:18px; border-radius:3px 0 0 3px; transition:width 0.5s; display:flex; align-items:center; justify-content:flex-end; padding-right:6px; }
+.pair-bar-r { background:var(--bad); height:18px; border-radius:0 3px 3px 0; transition:width 0.5s; display:flex; align-items:center; padding-left:6px; }
+.pair-bar-val { font-size:10px; font-family:'JetBrains Mono',monospace; color:#fff; font-weight:700; }
+.pair-row .val-r { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-2); text-align:right; }
+.pair-divider { width:2px; height:18px; background:var(--text-3); flex-shrink:0; }
+.pair-header { display:grid; grid-template-columns:80px 1fr 80px; gap:12px; padding-bottom:10px; margin-bottom:8px; border-bottom:1px solid var(--border); }
+.pair-header .h-l { color:var(--accent); font-weight:700; font-size:12px; font-family:'JetBrains Mono',monospace; }
+.pair-header .h-r { color:var(--bad); font-weight:700; font-size:12px; font-family:'JetBrains Mono',monospace; text-align:right; }
+.pair-header .h-c { text-align:center; font-size:10px; color:var(--text-3); font-family:'JetBrains Mono',monospace; letter-spacing:0.5px; }
+
+@media (max-width:1200px) {
+  .map-wrap { grid-template-columns:1fr; }
+  .div-grid { grid-template-columns:1fr; }
+  .scatter-legend-grid { grid-template-columns:1fr 1fr; }
+  .lorenz-stats { grid-template-columns:1fr; }
+  .hist-row { height:160px; }
+}
+
+/* ═══════ NEW SECTIONS § 14-19 ═══════ */
+
+/* § 14. AGE × SEX MATRIX */
+.agesex-grid { display:grid; grid-template-columns:120px 1fr 1fr; gap:6px; }
+.agesex-cell { padding:18px 16px; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:62px; transition:transform 0.15s; }
+.agesex-cell:hover { transform:scale(1.02); }
+.agesex-cell.head { background:transparent; padding:8px 12px; min-height:auto; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600; color:var(--text-3); letter-spacing:0.5px; text-transform:uppercase; }
+.agesex-cell.head.row { justify-content:flex-start; align-items:center; color:var(--text); font-size:13px; text-transform:none; padding-left:14px; flex-direction:row; }
+.agesex-cell.head.male { color:var(--accent); }
+.agesex-cell.head.female { color:var(--bad); }
+.agesex-cell .big { font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; letter-spacing:-0.5px; }
+.agesex-cell .small { font-size:10px; opacity:0.7; margin-top:3px; font-family:'JetBrains Mono',monospace; }
+
+/* § 16. SEX BIAS */
+.sexbias-list { display:flex; flex-direction:column; gap:14px; }
+.sexbias-row { display:grid; grid-template-columns:240px 1fr 180px; align-items:center; gap:14px; }
+.sexbias-name { font-size:13px; font-weight:500; color:var(--text); display:flex; align-items:center; gap:8px; }
+.prod-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.lev-tag { font-size:9px; font-family:'JetBrains Mono',monospace; padding:2px 6px; background:rgba(244,63,94,0.15); color:var(--bad); border-radius:3px; margin-left:6px; letter-spacing:0.5px; font-weight:700; }
+.sexbias-bar { height:26px; display:flex; border-radius:6px; overflow:hidden; background:var(--surface3); }
+.sb-male { background:linear-gradient(135deg, #5b8def, #2451d3); display:flex; align-items:center; justify-content:flex-end; padding-right:10px; color:#fff; font-size:11px; font-weight:700; font-family:'JetBrains Mono',monospace; transition:width 0.5s; }
+.sb-female { background:linear-gradient(135deg, #f43f5e, #be185d); display:flex; align-items:center; padding-left:10px; color:#fff; font-size:11px; font-weight:700; font-family:'JetBrains Mono',monospace; transition:width 0.5s; }
+.sexbias-meta { font-size:11px; color:var(--text-3); font-family:'JetBrains Mono',monospace; text-align:right; letter-spacing:0.3px; }
+
+/* § 17. VVIP CARDS */
+.vvip-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:24px; }
+.vvip-card { padding:22px 24px; background:linear-gradient(135deg, var(--surface) 0%, rgba(244,63,94,0.05) 100%); border:1px solid var(--border); border-radius:12px; border-left:3px solid var(--bad); }
+.vvip-card .lab { font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--text-3); letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; }
+.vvip-card .val { font-family:'JetBrains Mono',monospace; font-size:32px; font-weight:700; color:var(--bad); letter-spacing:-1px; line-height:1; }
+.vvip-card .desc { font-size:11px; color:var(--text-2); margin-top:8px; line-height:1.55; }
+
+/* § 18. F20 NEW POOL */
+.f20-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:24px; }
+.f20-card { padding:22px 24px; background:linear-gradient(135deg, var(--surface) 0%, rgba(20,184,166,0.05) 100%); border:1px solid var(--border); border-radius:12px; border-left:3px solid var(--good); }
+.f20-card .lab { font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--text-3); letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; }
+.f20-card .val { font-family:'JetBrains Mono',monospace; font-size:28px; font-weight:700; color:var(--good); letter-spacing:-0.8px; line-height:1; }
+.f20-card .desc { font-size:11px; color:var(--text-2); margin-top:8px; line-height:1.55; }
+
+.f20-row { display:grid; grid-template-columns:36px 80px 1fr 130px; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid var(--border); }
+.f20-row:last-child { border-bottom:none; }
+.f20-rank { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim); }
+.f20-name { font-size:13px; color:var(--text); font-weight:500; }
+.f20-bar { height:8px; background:var(--surface3); border-radius:100px; overflow:hidden; }
+.f20-fill { height:100%; background:linear-gradient(90deg, #14b8a6, #5b8def); border-radius:100px; transition:width 0.5s; }
+.f20-stat { font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--text-2); text-align:right; }
+.f20-stat b { color:var(--good); font-weight:700; }
+.f20-stat .muted { color:var(--text-3); font-size:10px; }
+
+/* § 19. SIDO × AGE MATRIX */
+.sidoage-grid { display:grid; grid-template-columns:90px repeat(5,1fr); gap:3px; font-family:'JetBrains Mono',monospace; }
+.sa-cell { padding:9px 6px; text-align:center; font-size:11px; border-radius:3px; transition:transform 0.12s; font-weight:600; }
+.sa-cell:hover { transform:scale(1.05); outline:1px solid var(--border-strong); position:relative; z-index:2; }
+.sa-cell.head { background:transparent; color:var(--text-3); font-weight:500; font-size:10px; letter-spacing:0.5px; padding:6px 4px; }
+.sa-cell.head.row { text-align:left; padding-left:10px; color:var(--text-2); font-size:11px; }
+.sa-cell.empty { background:var(--surface3); color:var(--text-dim); }
+
+@media (max-width:1200px) {
+  .sexbias-row { grid-template-columns:1fr; gap:6px; }
+  .vvip-stats, .f20-summary { grid-template-columns:1fr; }
+  .agesex-grid { grid-template-columns:80px 1fr 1fr; }
+  .sidoage-grid { grid-template-columns:60px repeat(5,1fr); font-size:9px; }
+  .sa-cell { padding:6px 3px; font-size:10px; }
+}
+
+/* § 20-23 — ADDITIONAL AGE/SEX ANALYSIS */
+
+/* § 20. AGE PROGRESSION */
+.progression-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-bottom:20px; }
+.progression-card { padding:18px 20px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; border-left:3px solid var(--prog-color, var(--accent)); }
+.progression-card .head-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.progression-card .icon { width:32px; height:32px; border-radius:8px; background:var(--prog-color, var(--accent)); display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; font-size:13px; }
+.progression-card .title { font-size:13px; font-weight:700; color:var(--text); }
+.progression-card .desc { font-size:11px; color:var(--text-2); line-height:1.6; }
+.progression-card .stat { font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; color:var(--prog-color, var(--accent)); margin-top:8px; letter-spacing:-0.5px; }
+
+/* § 21. TREEMAP */
+.treemap-wrap { display:grid; grid-template-columns:repeat(10, 1fr); grid-auto-rows:1fr; gap:4px; aspect-ratio:5/3; }
+.tm-cell { display:flex; flex-direction:column; justify-content:center; align-items:center; padding:8px; border-radius:6px; cursor:pointer; transition:transform 0.15s; position:relative; overflow:hidden; }
+.tm-cell:hover { transform:scale(1.03); z-index:5; }
+.tm-cell .seg-name { font-size:11px; font-weight:700; color:#fff; opacity:0.95; text-align:center; line-height:1.2; }
+.tm-cell .seg-val { font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; color:#fff; margin-top:4px; letter-spacing:-0.3px; }
+.tm-cell .seg-sub { font-size:9px; color:#ffffffcc; font-family:'JetBrains Mono',monospace; margin-top:2px; }
+
+/* § 22. PREFERENCE INDEX */
+.pref-grid { display:grid; grid-template-columns:120px 1fr 1fr; gap:14px; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
+.pref-grid:last-child { border-bottom:none; }
+.pref-grid.head { border-bottom:2px solid var(--border); padding-bottom:12px; margin-bottom:6px; }
+.pref-grid .h-c { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-3); letter-spacing:0.5px; text-transform:uppercase; }
+.pref-grid .h-c.male { color:var(--accent); }
+.pref-grid .h-c.female { color:var(--bad); }
+.pref-name { font-size:12px; color:var(--text); font-weight:600; display:flex; align-items:center; gap:8px; }
+.pref-bar-cell { display:flex; align-items:center; gap:8px; }
+.pref-bar { flex:1; height:18px; background:var(--surface3); border-radius:4px; overflow:hidden; position:relative; }
+.pref-fill { height:100%; transition:width 0.5s; }
+.pref-fill.male { background:linear-gradient(90deg, #2451d3, #5b8def); }
+.pref-fill.female { background:linear-gradient(90deg, #be185d, #f43f5e); }
+.pref-idx { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; min-width:42px; text-align:right; }
+.pref-idx.high { color:var(--bad); }
+.pref-idx.low { color:var(--text-3); }
+.pref-idx.mid { color:var(--text); }
+
+/* § 23. PERSONA CARDS */
+.persona-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+.persona-card { padding:22px 20px; background:linear-gradient(135deg, var(--surface) 0%, var(--persona-bg, rgba(91,141,239,0.05)) 100%); border:1px solid var(--border); border-top:3px solid var(--persona-color, var(--accent)); border-radius:12px; }
+.persona-card .icon-row { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+.persona-card .persona-icon { width:40px; height:40px; border-radius:50%; background:var(--persona-color, var(--accent)); display:flex; align-items:center; justify-content:center; font-size:18px; color:#fff; font-weight:700; }
+.persona-card .persona-tag { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--persona-color, var(--accent)); letter-spacing:1.2px; text-transform:uppercase; padding:3px 8px; background:var(--persona-bg, rgba(91,141,239,0.1)); border-radius:3px; font-weight:700; }
+.persona-card h4 { font-size:15px; font-weight:700; color:var(--text); margin-bottom:6px; letter-spacing:-0.3px; }
+.persona-card .summary { font-size:12px; color:var(--text-2); line-height:1.6; margin-bottom:14px; min-height:42px; }
+.persona-card .stats-row { display:flex; gap:12px; padding:10px 0; border-top:1px dashed var(--border); border-bottom:1px dashed var(--border); margin-bottom:12px; }
+.persona-card .stat-mini { font-family:'JetBrains Mono',monospace; flex:1; }
+.persona-card .stat-mini .lab { font-size:8px; color:var(--text-3); letter-spacing:0.5px; margin-bottom:3px; text-transform:uppercase; }
+.persona-card .stat-mini .val { font-size:14px; font-weight:700; color:var(--persona-color, var(--accent)); letter-spacing:-0.3px; }
+.persona-card .reco { font-size:11px; color:var(--text-2); line-height:1.6; }
+.persona-card .reco-label { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--text-3); letter-spacing:1px; margin-bottom:5px; text-transform:uppercase; font-weight:700; }
+.persona-card .reco-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
+.persona-card .reco-tag { font-size:10px; padding:3px 8px; background:var(--surface2); border:1px solid var(--border); border-radius:100px; color:var(--text-2); font-family:'JetBrains Mono',monospace; }
+
+/* MAIN */
+.container { max-width:1600px; margin:0 auto; padding:0 32px 60px; }
+
+/* KPI */
+.kpi-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:80px; }
+.kpi-card { background:linear-gradient(135deg,var(--kpi-card-bg-from) 0%,var(--kpi-card-bg-to) 100%); border:1px solid var(--border); border-radius:10px; padding:20px 22px; position:relative; overflow:hidden; transition:background 0.3s, border-color 0.3s; }
+.kpi-card::before { content:''; position:absolute; top:0; left:0; width:3px; height:100%; background:var(--kpi-color,var(--accent)); }
+.kpi-card .label { font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--text-3); letter-spacing:1px; text-transform:uppercase; margin-bottom:10px; }
+.kpi-card .value { font-family:'JetBrains Mono',monospace; font-size:28px; font-weight:700; color:var(--text); line-height:1; letter-spacing:-1px; }
+.kpi-card .unit { font-size:13px; color:var(--text-3); margin-left:4px; }
+.kpi-card .delta { font-size:11px; color:var(--text-2); margin-top:10px; font-family:'JetBrains Mono',monospace; }
+.kpi-card .delta strong { color:var(--kpi-color,var(--accent)); font-weight:600; }
+
+/* EXEC SUMMARY */
+.exec-summary { background:linear-gradient(135deg,var(--gradient-bg-1) 0%,var(--gradient-bg-2) 100%); border:1px solid var(--border); border-radius:16px; padding:40px 48px; margin-bottom:80px; position:relative; overflow:hidden; }
+.exec-summary::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,var(--accent),transparent); }
+.exec-summary .ribbon { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:2px; color:var(--accent); margin-bottom:14px; }
+.exec-summary h2 { font-family:'Noto Serif KR',serif; font-size:28px; font-weight:700; letter-spacing:-0.8px; margin-bottom:24px; color:var(--text); }
+.exec-summary p { font-size:14px; color:var(--text-2); line-height:1.85; max-width:1000px; }
+.exec-summary p + p { margin-top:14px; }
+.exec-summary strong { color:var(--accent-warm); font-weight:600; }
+.exec-takeaways { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-top:32px; padding-top:28px; border-top:1px solid var(--border); }
+.exec-take { font-size:12px; }
+.exec-take .num { font-family:'JetBrains Mono',monospace; font-size:36px; font-weight:700; color:var(--take-color,var(--accent)); line-height:1; margin-bottom:8px; letter-spacing:-1px; }
+.exec-take .lab { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-3); letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
+.exec-take .desc { color:var(--text-2); line-height:1.6; }
+
+/* SECTION */
+.section { margin-bottom:64px; scroll-margin-top:80px; }
+.section-header { display:flex; align-items:baseline; gap:14px; margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.section-num { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-dim); letter-spacing:1px; }
+.section-title { font-family:'Noto Serif KR',serif; font-size:22px; font-weight:700; letter-spacing:-0.5px; }
+.section-desc { font-size:12px; color:var(--text-3); margin-left:auto; }
+
+/* CARDS */
+.card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:22px; }
+.card-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; gap:16px; flex-wrap:wrap; }
+.card-head .left h3 { font-size:13px; font-weight:600; color:var(--text); margin-bottom:2px; }
+.card-head .left p { font-size:11px; color:var(--text-3); }
+.card-head .right { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim); letter-spacing:0.5px; }
+
+/* INSIGHT */
+.insight-block { margin-top:24px; padding:24px 28px; background:linear-gradient(135deg,var(--insight-bg-from) 0%,var(--insight-bg-to) 100%); border-left:3px solid var(--insight-color,var(--accent)); border-radius:0 10px 10px 0; }
+.insight-block .label { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1.5px; color:var(--insight-color,var(--accent)); text-transform:uppercase; margin-bottom:10px; }
+.insight-block .label::before { content:'◆ '; }
+.insight-block h4 { font-size:16px; font-weight:600; margin-bottom:12px; letter-spacing:-0.2px; color:var(--text); }
+.insight-block p { font-size:13px; color:var(--text-2); line-height:1.75; }
+.insight-block p + p { margin-top:8px; }
+.insight-block strong { color:var(--insight-color,var(--accent)); font-weight:600; }
+.insight-block .actions { margin-top:16px; padding-top:14px; border-top:1px dashed var(--border); }
+.insight-block .actions .a-label { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:1px; color:var(--text-3); margin-bottom:8px; }
+.insight-block .actions ul { list-style:none; padding-left:0; }
+.insight-block .actions li { padding:5px 0 5px 18px; position:relative; color:var(--text-2); font-size:12px; line-height:1.6; }
+.insight-block .actions li::before { content:'→'; position:absolute; left:0; color:var(--insight-color,var(--accent)); font-family:'JetBrains Mono',monospace; }
+
+/* GRID */
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+.grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; }
+.grid-23 { display:grid; grid-template-columns:2fr 1fr; gap:18px; }
+
+/* FILTER */
+.filter-row { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+.pill { padding:5px 12px; border-radius:100px; border:1px solid var(--border); background:var(--surface2); font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--text-2); cursor:pointer; transition:all 0.15s; }
+.pill:hover { border-color:var(--border-strong); color:var(--text); }
+.pill.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+/* TABLE */
+.tbl { width:100%; border-collapse:collapse; font-size:12px; }
+.tbl th { text-align:left; font-family:'JetBrains Mono',monospace; font-weight:500; font-size:10px; color:var(--text-3); letter-spacing:0.5px; padding:8px 10px; border-bottom:1px solid var(--border); text-transform:uppercase; }
+.tbl th.num { text-align:right; }
+.tbl td { padding:9px 10px; border-bottom:1px solid var(--border); }
+.tbl td.num { text-align:right; font-family:'JetBrains Mono',monospace; color:var(--text); }
+.tbl td.rank { font-family:'JetBrains Mono',monospace; color:var(--text-dim); font-size:11px; width:30px; }
+.tbl tr:last-child td { border-bottom:none; }
+.tbl tr:hover td { background:var(--surface2); }
+.bar-cell { width:120px; padding:0 10px; }
+.bar-bg { height:4px; background:var(--surface3); border-radius:100px; overflow:hidden; }
+.bar-fill { height:100%; border-radius:100px; }
+.tag { display:inline-block; padding:2px 8px; border-radius:100px; font-size:10px; font-family:'JetBrains Mono',monospace; }
+
+/* HEATMAP */
+.heatmap { display:grid; grid-template-columns:100px repeat(6,1fr); gap:2px; font-size:10px; font-family:'JetBrains Mono',monospace; }
+.heat-h { padding:6px 4px; text-align:center; color:var(--text-3); font-size:9px; letter-spacing:0.3px; }
+.heat-h.row { text-align:left; padding-left:8px; display:flex; align-items:center; color:var(--text-2); }
+.heat-cell { padding:8px 4px; text-align:center; border-radius:3px; transition:transform 0.15s; color:var(--text); }
+.heat-cell:hover { transform:scale(1.06); outline:1px solid var(--border-strong); position:relative; z-index:2; }
+
+/* NARRATIVE */
+.narrative { margin:48px 0; padding:32px 40px; background:var(--surface); border-radius:12px; border:1px solid var(--border); border-left:4px solid var(--accent-warm); }
+.narrative .lab { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--accent-warm); letter-spacing:1.5px; margin-bottom:12px; }
+.narrative blockquote { font-family:'Noto Serif KR',serif; font-size:22px; font-weight:500; line-height:1.5; letter-spacing:-0.4px; color:var(--text); font-style:italic; }
+.narrative blockquote::before { content:'"'; color:var(--accent-warm); }
+.narrative blockquote::after { content:'"'; color:var(--accent-warm); }
+.narrative .src { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-3); margin-top:16px; letter-spacing:0.5px; }
+
+/* STRATEGY */
+.strategy-section { margin-top:80px; padding:60px 0; background:linear-gradient(180deg,var(--bg) 0%,rgba(91,141,239,0.03) 100%); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+.strategy-tag { font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:2px; color:var(--accent-warm); margin-bottom:12px; }
+.strategy-section h2 { font-family:'Noto Serif KR',serif; font-size:36px; font-weight:700; letter-spacing:-1px; margin-bottom:16px; color:var(--text); }
+.strategy-section .sub { font-size:14px; color:var(--text-2); max-width:800px; margin-bottom:48px; line-height:1.7; }
+.strategy-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; }
+.strategy-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:28px; }
+.strategy-card .priority { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.5px; padding:3px 10px; border-radius:3px; display:inline-block; margin-bottom:16px; }
+.strategy-card .priority.high { background:rgba(244,63,94,0.15); color:var(--bad); border:1px solid rgba(244,63,94,0.3); }
+.strategy-card .priority.med { background:rgba(251,191,36,0.15); color:var(--warn); border:1px solid rgba(251,191,36,0.3); }
+.strategy-card .priority.low { background:rgba(91,141,239,0.15); color:var(--accent); border:1px solid rgba(91,141,239,0.3); }
+.strategy-card h3 { font-family:'Noto Serif KR',serif; font-size:20px; font-weight:700; letter-spacing:-0.3px; margin-bottom:12px; color:var(--text); }
+.strategy-card .opp { font-size:13px; color:var(--text-2); line-height:1.7; margin-bottom:20px; }
+.strategy-card .opp strong { color:var(--accent-warm); }
+.strategy-card .actions { padding-top:18px; border-top:1px dashed var(--border); }
+.strategy-card .actions .a-label { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--text-3); margin-bottom:12px; }
+.strategy-card .actions ol { list-style:none; padding-left:0; counter-reset:action; }
+.strategy-card .actions li { counter-increment:action; padding:8px 0 8px 30px; position:relative; font-size:12px; color:var(--text-2); line-height:1.6; }
+.strategy-card .actions li::before { content:counter(action,decimal-leading-zero); position:absolute; left:0; top:8px; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--accent); font-weight:600; }
+
+/* CHART */
+.chart-wrap { position:relative; width:100%; }
+.chart-wrap.h-360 { height:360px; }
+.chart-wrap.h-400 { height:400px; }
+.chart-wrap.h-500 { height:500px; }
+
+/* FOOTER */
+footer { margin-top:80px; padding:32px 0; border-top:1px solid var(--border); background:var(--footer-bg); transition:background 0.3s; }
+.footer-inner { max-width:1600px; margin:0 auto; padding:0 32px; display:grid; grid-template-columns:2fr 1fr 1fr; gap:40px; }
+.footer-brand h4 { font-family:'Noto Serif KR',serif; font-size:16px; margin-bottom:8px; }
+.footer-brand p { font-size:11px; color:var(--text-3); line-height:1.6; }
+.footer-section h5 { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:1.5px; color:var(--text-3); margin-bottom:14px; text-transform:uppercase; }
+.footer-section ul { list-style:none; }
+.footer-section li { padding:4px 0; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-2); }
+.footer-meta { max-width:1600px; margin:32px auto 0; padding:20px 32px 0; border-top:1px solid var(--border); display:flex; justify-content:space-between; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim); flex-wrap:wrap; gap:10px; }
+
+@media (max-width:1200px) {
+  .kpi-grid { grid-template-columns:repeat(3,1fr); }
+  .grid-2, .grid-23, .strategy-grid { grid-template-columns:1fr; }
+  .exec-takeaways { grid-template-columns:1fr; }
+  .hero h1 { font-size:36px; }
+  .footer-inner { grid-template-columns:1fr; }
+}
+
+/* MOBILE — under 768px */
+@media (max-width:768px) {
+  body { font-size:12px; }
+  .topbar-inner { padding:12px 14px; gap:10px; flex-wrap:wrap; }
+  .nav-links { display:none; }
+  .brand-text h1 { font-size:13px; }
+  .brand-text p { font-size:9px; }
+  .topbar-meta { gap:6px; }
+  .meta-pill { font-size:9px; }
+  .confidential { font-size:9px; padding:3px 7px; letter-spacing:0.8px; }
+  .theme-toggle button { padding:4px 8px; font-size:10px; }
+
+  .hero { padding:40px 16px 36px; }
+  .hero-tag { font-size:9px; letter-spacing:1px; padding:5px 10px; margin-bottom:16px; }
+  .hero h1 { font-size:24px; line-height:1.25; letter-spacing:-0.5px; margin-bottom:14px; }
+  .hero .lead { font-size:13px; line-height:1.6; margin-bottom:24px; }
+  .hero-meta { gap:16px; margin-top:24px; padding-top:18px; }
+  .hero-meta .meta-item .l { font-size:9px; letter-spacing:0.8px; }
+  .hero-meta .meta-item .v { font-size:12px; }
+  .upcoming-row { gap:8px; margin-top:18px; }
+  .upcoming-pill { font-size:10px; padding:6px 10px; }
+
+  .container { padding:0 14px 40px; }
+
+  .kpi-grid { grid-template-columns:repeat(2,1fr); gap:8px; margin-bottom:36px; }
+  .kpi-card { padding:14px 16px; }
+  .kpi-card .label { font-size:9px; letter-spacing:0.6px; }
+  .kpi-card .value { font-size:20px; }
+  .kpi-card .unit { font-size:10px; }
+  .kpi-card .delta { font-size:9px; }
+
+  .exec-summary { padding:24px 18px; margin-bottom:40px; border-radius:12px; }
+  .exec-summary h2 { font-size:18px; line-height:1.35; letter-spacing:-0.4px; margin-bottom:16px; }
+  .exec-summary p { font-size:12px; line-height:1.7; }
+  .exec-summary .ribbon { font-size:9px; letter-spacing:1.2px; }
+  .exec-take .num { font-size:24px; }
+  .exec-take .lab { font-size:9px; }
+  .exec-take .desc { font-size:11px; }
+
+  .section { margin-bottom:40px; }
+  .section-header { gap:8px; margin-bottom:16px; padding-bottom:10px; }
+  .section-num { font-size:9px; }
+  .section-title { font-size:16px; }
+  .section-desc { font-size:10px; margin-left:0; flex-basis:100%; }
+
+  .card { padding:14px; border-radius:10px; }
+  .card-head { margin-bottom:12px; gap:8px; }
+  .card-head .left h3 { font-size:12px; }
+  .card-head .left p { font-size:10px; }
+  .card-head .right { font-size:9px; }
+
+  .insight-block { padding:16px 18px; border-radius:0 8px 8px 0; }
+  .insight-block h4 { font-size:13px; line-height:1.4; margin-bottom:8px; }
+  .insight-block p { font-size:11px; line-height:1.65; }
+  .insight-block .actions li { font-size:11px; padding:4px 0 4px 16px; }
+  .insight-block .label { font-size:8px; letter-spacing:1.2px; }
+
+  .narrative { padding:20px 16px; margin:32px 0; }
+  .narrative blockquote { font-size:15px; line-height:1.5; }
+
+  /* TABLE COMPACT */
+  .tbl { font-size:10px; }
+  .tbl th { font-size:8px; padding:5px 4px; letter-spacing:0.3px; }
+  .tbl td { padding:6px 4px; }
+  .tbl td.rank { width:22px; font-size:9px; }
+  .bar-cell { width:60px; padding:0 4px; }
+
+  /* CHART HEIGHTS */
+  .chart-wrap.h-360 { height:280px; }
+  .chart-wrap.h-400 { height:300px; }
+  .chart-wrap.h-500 { height:380px; }
+
+  /* HEATMAP */
+  .heatmap { grid-template-columns:60px repeat(6,1fr); gap:1px; font-size:8px; }
+  .heat-h { padding:4px 2px; font-size:7px; }
+  .heat-h.row { padding-left:4px; font-size:8px; }
+  .heat-cell { padding:5px 2px; }
+
+  /* HIST */
+  .hist-row { height:140px; padding:0 4px; gap:4px; }
+  .hist-bar .val { font-size:8px; top:-16px; }
+  .hist-bar .pct { font-size:9px; }
+  .hist-label { font-size:8px; }
+
+  /* SCATTER LEGEND */
+  #scatterLegend { font-size:10px; }
+
+  /* PAIR */
+  .pair-toggle-row { flex-direction:column; align-items:flex-start; gap:6px; }
+  .pair-select { width:100%; }
+  .pair-row { grid-template-columns:60px 1fr 60px; gap:6px; }
+  .pair-row .val-r { font-size:9px; }
+
+  /* MAP */
+  .map-wrap { gap:14px; }
+  .map-svg-wrap svg { max-height:380px; }
+  .map-side .legend-list { padding:10px 12px; }
+  .map-side .legend-row { font-size:10px; }
+
+  /* AGE × SEX MATRIX */
+  .agesex-grid { grid-template-columns:60px 1fr 1fr; gap:3px; }
+  .agesex-cell { padding:11px 8px; min-height:46px; }
+  .agesex-cell .big { font-size:13px; }
+  .agesex-cell.head { padding:5px 6px; font-size:9px; }
+  .agesex-cell.head.row { font-size:11px; padding-left:6px; }
+
+  /* SEX BIAS */
+  .sexbias-row { grid-template-columns:1fr; gap:5px; padding:8px 0; border-bottom:1px dashed var(--border); }
+  .sexbias-name { font-size:11px; }
+  .sexbias-bar { height:22px; }
+  .sb-male, .sb-female { font-size:10px; padding:0 6px; }
+  .sexbias-meta { font-size:9px; text-align:left; }
+
+  /* VVIP */
+  .vvip-stats, .f20-summary { grid-template-columns:1fr; gap:8px; margin-bottom:16px; }
+  .vvip-card, .f20-card { padding:14px 16px; }
+  .vvip-card .val, .f20-card .val { font-size:24px; }
+  .vvip-card .lab, .f20-card .lab { font-size:9px; }
+  .vvip-card .desc, .f20-card .desc { font-size:10px; }
+
+  /* F20 LIST */
+  .f20-row { grid-template-columns:24px 50px 1fr 90px; gap:6px; padding:6px 0; }
+  .f20-rank { font-size:9px; }
+  .f20-name { font-size:11px; }
+  .f20-stat { font-size:9px; }
+  .f20-stat .muted { font-size:8px; }
+
+  /* SIDO × AGE */
+  .sidoage-grid { grid-template-columns:46px repeat(5,1fr); gap:2px; }
+  .sa-cell { padding:5px 2px; font-size:9px; }
+  .sa-cell.head { font-size:8px; padding:4px 1px; }
+  .sa-cell.head.row { font-size:9px; padding-left:4px; }
+
+  /* LORENZ STATS */
+  .lorenz-stats { grid-template-columns:1fr; gap:8px; }
+  .lorenz-stat { padding:12px; }
+  .lorenz-stat .v { font-size:18px; }
+
+  /* STRATEGY */
+  .strategy-section { padding:36px 0; margin-top:48px; }
+  .strategy-section h2 { font-size:22px; letter-spacing:-0.5px; margin-bottom:12px; }
+  .strategy-section .sub { font-size:12px; margin-bottom:24px; }
+  .strategy-card { padding:18px; border-radius:10px; }
+  .strategy-card h3 { font-size:15px; line-height:1.35; margin-bottom:8px; }
+  .strategy-card .opp { font-size:11px; line-height:1.65; margin-bottom:14px; }
+  .strategy-card .priority { font-size:9px; padding:2px 7px; letter-spacing:1px; }
+  .strategy-card .actions li { font-size:11px; padding:6px 0 6px 22px; }
+  .strategy-card .actions li::before { font-size:9px; }
+
+  /* FOOTER */
+  footer { padding:24px 0; margin-top:48px; }
+  .footer-inner { padding:0 14px; gap:24px; }
+  .footer-brand h4 { font-size:14px; }
+  .footer-brand p { font-size:10px; }
+  .footer-section h5 { font-size:9px; }
+  .footer-section li { font-size:10px; }
+  .footer-meta { padding:14px 14px 0; flex-direction:column; align-items:flex-start; gap:6px; font-size:9px; }
+
+  /* AGE-PROGRESSION CARDS */
+  .progression-grid { grid-template-columns:1fr; gap:8px; }
+
+  /* PERSONA CARDS */
+  .persona-grid { grid-template-columns:1fr; gap:10px; }
+}
+
+/* SMALLER MOBILE — under 480px */
+@media (max-width:480px) {
+  .hero h1 { font-size:20px; }
+  .kpi-grid { grid-template-columns:1fr 1fr; }
+  .agesex-cell .big { font-size:12px; }
+  .sa-cell { font-size:8px; padding:4px 1px; }
+}
+</style>
+</head>
+<body>
+
+<!-- 🔒 PASSWORD GATE -->
+<div id="pwGate" style="position:fixed;inset:0;background:#07090f;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans KR',sans-serif;">
+  <div style="background:linear-gradient(135deg,#11151f 0%,#161c2a 100%);border:1px solid #1f2940;border-radius:16px;padding:48px 44px;max-width:440px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+    <div style="width:56px;height:56px;background:linear-gradient(135deg,#5b8def,#fb923c);border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:18px;color:#fff;margin:0 auto 20px;box-shadow:0 8px 24px rgba(91,141,239,0.3);">SAM</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:#5b8def;margin-bottom:12px;">◆ AUTHORIZATION REQUIRED</div>
+    <h2 style="font-family:'Noto Serif KR',serif;font-size:22px;font-weight:700;color:#fff;margin-bottom:8px;letter-spacing:-0.5px;">SAM ETF Intelligence</h2>
+    <p style="font-size:13px;color:#a1adc7;margin-bottom:28px;line-height:1.6;">접근 권한이 있는 사용자만<br>대시보드를 열람할 수 있습니다.</p>
+    <form id="pwForm" autocomplete="off">
+      <input type="password" id="pwInput" placeholder="비밀번호 입력" autofocus
+        style="width:100%;padding:14px 16px;background:#0c1018;border:1px solid #2c3a5a;border-radius:8px;color:#e5edff;font-size:14px;font-family:inherit;text-align:center;letter-spacing:0.5px;outline:none;transition:border-color 0.2s;"
+        onfocus="this.style.borderColor='#5b8def'" onblur="this.style.borderColor='#2c3a5a'" />
+      <div id="pwError" style="color:#f43f5e;font-size:12px;margin-top:10px;min-height:18px;font-family:'JetBrains Mono',monospace;letter-spacing:0.3px;"></div>
+      <button type="submit"
+        style="width:100%;margin-top:16px;padding:13px;background:linear-gradient(135deg,#5b8def,#2451d3);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:0.3px;transition:transform 0.1s;"
+        onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform=''">
+        ACCESS DASHBOARD →
+      </button>
+    </form>
+    <div style="margin-top:24px;padding-top:20px;border-top:1px solid #1f2940;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.2px;color:#4a5572;">
+      SAMSUNG ASSET MANAGEMENT · ETF PLANNING TEAM<br>
+      CONFIDENTIAL · INTERNAL USE ONLY
+    </div>
+  </div>
+</div>
+
+<script>
+// 🔒 비밀번호 게이트 — SHA-256 해시 비교
+(function() {
+  const PW_HASH = '573e38c05331d89857e38ad8b200877f749829c0da3c00975bca7b098e862122';
+  const SESSION_KEY = 'sam-etf-auth';
+
+  // 이미 인증된 세션이면 게이트 즉시 제거
+  if (sessionStorage.getItem(SESSION_KEY) === 'ok') {
+    document.getElementById('pwGate').remove();
+    return;
+  }
+
+  // 페이지 스크롤 잠금
+  document.body.style.overflow = 'hidden';
+
+  async function sha256(text) {
+    const buf = new TextEncoder().encode(text);
+    const hash = await crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  document.getElementById('pwForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('pwInput').value;
+    const errEl = document.getElementById('pwError');
+    errEl.textContent = '';
+
+    if (!input) { errEl.textContent = '⚠ 비밀번호를 입력하세요'; return; }
+
+    const hash = await sha256(input);
+    if (hash === PW_HASH) {
+      sessionStorage.setItem(SESSION_KEY, 'ok');
+      document.getElementById('pwGate').style.transition = 'opacity 0.3s';
+      document.getElementById('pwGate').style.opacity = '0';
+      setTimeout(() => {
+        document.getElementById('pwGate').remove();
+        document.body.style.overflow = '';
+      }, 300);
+    } else {
+      errEl.textContent = '⚠ 비밀번호가 일치하지 않습니다';
+      document.getElementById('pwInput').value = '';
+      document.getElementById('pwInput').focus();
+    }
+  });
+})();
+</script>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="logo">SAM</div>
+      <div class="brand-text">
+        <h1>SAM ETF Intelligence</h1>
+        <p>SAMSUNG ASSET MANAGEMENT · ETF PLANNING TEAM</p>
+      </div>
+    </div>
+    <nav class="nav-links">
+      <a href="#summary">SUMMARY</a>
+      <a href="#products">PRODUCTS</a>
+      <a href="#regions">REGIONS</a>
+      <a href="#agesex">AGE×SEX</a>
+      <a href="#vvip">VVIP</a>
+      <a href="#lifecycle">LIFECYCLE</a>
+      <a href="#personas">PERSONAS</a>
+      <a href="#strategy">STRATEGY</a>
+    </nav>
+    <div class="topbar-meta">
+      <div class="theme-toggle" id="themeToggle">
+        <button data-theme="dark" class="active" title="다크 모드">◐ DARK</button>
+        <button data-theme="light" title="라이트 모드">◑ LIGHT</button>
+      </div>
+      <span class="meta-pill"><span class="dot"></span>2026.05.06</span>
+      <span class="confidential">INTERNAL</span>
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <span class="hero-tag">◆ INTERNAL ANALYSIS REPORT · v1.0</span>
+  <h1>반도체 ETF는 누가, 어디서, 얼마나 사고 있는가 — <em>5차원으로 본 시장 구조</em></h1>
+  <p class="lead">
+    KODEX 3종 · TIGER 3종, 총 6개 반도체 ETF의 전국 보유 현황을 17개 시·도 × 100여 시·구 × <strong>5개 연령대 × 성별</strong>까지 분해.
+    삼성자산운용 ETF 기획팀 시각에서 시장 점유 구조와 세그먼트별 페르소나, 그리고 다음 한 분기를 위한 실행 전략을 제시합니다.
+  </p>
+  <div class="hero-meta">
+    <div class="meta-item"><div class="l">DATA POINTS</div><div class="v">2,238 행 / 5차원</div></div>
+    <div class="meta-item"><div class="l">TOTAL AUM</div><div class="v">5,862억원</div></div>
+    <div class="meta-item"><div class="l">TOTAL HOLDERS</div><div class="v">61,335명</div></div>
+    <div class="meta-item"><div class="l">REPORT DATE</div><div class="v">2026.05.06</div></div>
+  </div>
+
+  <div class="upcoming-row">
+    <span class="upcoming-pill warm">
+      <span class="dot"></span>
+      UPCOMING · 2026.05 중 명칭 변경 · <strong>KODEX AI반도체 → KODEX AI반도체TOP2+</strong>
+    </span>
+    <span class="upcoming-pill orange">
+      <span class="dot"></span>
+      UPCOMING · 2026.05 신규 출시 · <strong>KODEX 반도체위클리커버드콜</strong>
+    </span>
+    <span class="upcoming-pill rose">
+      <span class="dot"></span>
+      UPCOMING · 2026.05말 신규 상장 · <strong>KODEX 삼성전자 레버리지 · KODEX SK하이닉스 레버리지</strong>
+    </span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- KPI -->
+  <div class="kpi-grid">
+    <div class="kpi-card" style="--kpi-color:#5b8def">
+      <div class="label">총 보유 평가액</div>
+      <div class="value">5,862<span class="unit">억</span></div>
+      <div class="delta">≒ <strong>586.2 B</strong></div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#38bdf8">
+      <div class="label">총 보유 인원</div>
+      <div class="value">61,335<span class="unit">명</span></div>
+      <div class="delta">시·도 17개 · 시·구 100+</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#14b8a6">
+      <div class="label">1인당 평균 보유액</div>
+      <div class="value">956<span class="unit">만원</span></div>
+      <div class="delta">전국 단순 평균</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#fbbf24">
+      <div class="label">최대 종목 점유율</div>
+      <div class="value">45.7<span class="unit">%</span></div>
+      <div class="delta"><strong>TIGER TOP10</strong> · 2,676억</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#f43f5e">
+      <div class="label">최고 객단가 풀</div>
+      <div class="value">1.6<span class="unit">억</span></div>
+      <div class="delta">60대+ 남성 · KODEX 레버리지</div>
+    </div>
+  </div>
+
+  <!-- EXEC SUMMARY -->
+  <div class="exec-summary" id="summary">
+    <div class="ribbon">◆ EXECUTIVE SUMMARY · 핵심 요약</div>
+    <h2>반도체 ETF 시장은 50대 남성이 책임지고, 60대 남성이 객단가를 높이며, 20대 여성이 신규 유입한다</h2>
+    <p>
+      이번 분석은 종목·지역에 더해 <strong>연령대·성별</strong>까지 포함된 5차원 데이터를 기반으로 합니다.
+      그 결과 시장이 단일 모집단이 아니라, 행동 패턴이 완전히 다른 <strong>3개 핵심 세그먼트</strong>로 구성되어 있음이 명확해집니다.
+      ① <strong>50대 = 시장의 중심</strong>(AUM 35.4% · 인원 29.9%, 단일 최대 세그먼트),
+      ② <strong>60대 이상 남성 = 객단가의 정점</strong>(1인당 평균 2,564만원, 전체 평균의 2.7배 — KODEX 레버리지에서는 1인당 1.6억원),
+      ③ <strong>20대 여성 = 미개척 신규 풀</strong>(4,300명, 1인당 185만원으로 진입은 했지만 소액에 머무는 풀).
+    </p>
+    <p>
+      종목 단에서도 패턴이 분명합니다. <strong>TIGER TOP10이 시장의 45.7%</strong>를 점유하며 비수도권에서 사실상 단일 상품(전남 87% · 부산 78.6% · 울산 78.7%)으로 작동하는 반면,
+      KODEX 라인업은 수도권 IT 벨트(화성·수원·이천·평택·청주)에 집중되며 <strong>"산업 종사자형 보유자"</strong>를 확보하고 있습니다.
+      특히 <strong>레버리지 상품일수록 남성 편향이 극심</strong>합니다 — TIGER TOP10 레버리지 87.0%, KODEX 레버리지 78.5%가 남성으로,
+      "단일 종목 레버리지 = 남성 액티브 투자자"라는 페르소나가 데이터로 확인됩니다.
+    </p>
+    <p>
+      따라서 다음 한 분기 과제는 명확합니다.
+      <strong>① 60대+ 남성 VVIP 풀에 KODEX 레버리지·신규 단일종목 LEV 정조준</strong>(1인 1.6억 풀은 별도 IR 트랙 필수),
+      <strong>② 50대 핵심 풀에 AI반도체TOP2+ 리브랜딩과 위클리CC를 동시 노출</strong>(인원과 객단가 모두 가장 두꺼운 풀),
+      <strong>③ 20대 여성 4,300명에 적립식·소액 자동투자 캠페인</strong>으로 객단가 점진 상승 유도.
+    </p>
+
+    <div class="exec-takeaways">
+      <div class="exec-take" style="--take-color:#f43f5e">
+        <div class="num">60대+ 남</div>
+        <div class="lab">VVIP 풀 · 객단가 정점</div>
+        <div class="desc">KODEX 레버리지 1인당 <strong>1.6억원</strong>. 인원은 적지만 AUM 임팩트 압도적. 별도 프라이빗 IR 트랙 필수.</div>
+      </div>
+      <div class="exec-take" style="--take-color:#fbbf24">
+        <div class="num">50대</div>
+        <div class="lab">시장의 중심 · 인원·금액 1위</div>
+        <div class="desc">AUM <strong>35.4%</strong> + 인원 <strong>29.9%</strong>. 5월 신규 라인업(AI TOP2+ · 위클리CC) 1차 노출 풀.</div>
+      </div>
+      <div class="exec-take" style="--take-color:#14b8a6">
+        <div class="num">20대 여</div>
+        <div class="lab">미개척 신규 풀</div>
+        <div class="desc">4,300명 · 1인 <strong>185만원</strong>. 진입은 했지만 소액 정체. 적립식 자동투자가 정답.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- § 1. PRODUCTS -->
+  <div class="section" id="products">
+    <div class="section-header">
+      <span class="section-num">§ 01</span>
+      <span class="section-title">종목별 시장 점유 구조</span>
+      <span class="section-desc">6종 반도체 ETF의 AUM·인원·1인당 보유금액 비교</span>
+    </div>
+    <div class="grid-23">
+      <div class="card">
+        <div class="card-head">
+          <div class="left"><h3>종목별 AUM 분포</h3><p>단위: 백만원 · 도넛 차트</p></div>
+          <div class="right">TOTAL · 1,250,820M</div>
+        </div>
+        <div class="chart-wrap h-360"><canvas id="donut"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="left"><h3>종목 순위 & 1인당 보유금액</h3><p>1인당 평균 보유액</p></div>
+        </div>
+        <table class="tbl">
+          <thead><tr><th>#</th><th>종목</th><th class="num">AUM(B)</th><th class="num">인원</th><th class="num">1인당(만원)</th></tr></thead>
+          <tbody id="prodTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="insight-block" style="--insight-color:#5b8def">
+      <div class="label">SAM Insight · 종목 구조 해석</div>
+      <h4>KODEX AI반도체TOP2+ 리브랜딩 — 가장 두꺼운 보유자 풀을 가진 카드</h4>
+      <p>
+        KODEX AI반도체는 보유 인원 <strong>34,900명</strong>으로 KODEX 라인업 중 가장 많은 보유자를 확보하고 있습니다. 즉 <strong>"진입 장벽이 낮아 신규 유입이 가장 활발한 상품"</strong>입니다.
+        5월 중 진행되는 <strong>KODEX AI반도체 → KODEX AI반도체TOP2+</strong> 명칭 변경은 단순 리네이밍이 아니라, "AI 반도체 핵심 2종 + α" 컨셉으로 상품 정체성을 명료화하는 작업이며, 이미 확보된 가장 두꺼운 보유자 풀에 새로운 메시지를 가장 효율적으로 전달할 수 있는 카드입니다.
+      </p>
+      <p>
+        한편 KODEX 반도체(보유 인원 21,740명)는 화성·수원·평택 등 반도체 산업 인접 지역 중심으로 견고한 진지를 형성하고 있습니다.
+        이 진지는 5월 신규 출시되는 <strong>KODEX 반도체위클리커버드콜</strong>과 5월 말 상장하는 <strong>삼성전자/SK하이닉스 레버리지 2종</strong>의 1차 모객 풀이 될 가능성이 높습니다 — 한 번 형성된 "반도체 보유 행동"은 인접 신상품 흡수에 결정적 영향을 미치기 때문입니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li><strong>KODEX AI반도체TOP2+</strong> 명칭 변경 시점에 기존 보유자 34,900명 전원에게 리브랜딩 안내 + "TOP2+" 컨셉 설명 자료 푸시</li>
+          <li><strong>KODEX 반도체위클리커버드콜</strong> 출시 시 KODEX 반도체 보유자 21,740명 대상 "성장→인컴 분산" 메시지로 1차 IR</li>
+          <li><strong>삼성전자/SK하이닉스 레버리지</strong> 상장 시 KODEX 반도체 보유자의 화성·수원·이천 지역 거주자에 우선 노출 — 이미 반도체 노출 의지가 검증된 풀</li>
+          <li>KODEX 라인업 전체를 "성장(레버리지) → 핵심(반도체·AI TOP2+) → 인컴(위클리CC) → 단일종목(삼전·하이닉스 LEV)" 4축 funnel로 시각화한 통합 IR 자료 제작</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- § 2. REGIONS -->
+  <div class="section" id="regions">
+    <div class="section-header">
+      <span class="section-num">§ 02</span>
+      <span class="section-title">광역시·도 분포</span>
+      <span class="section-desc">17개 시·도별 AUM·인원·1인 평균 종합</span>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <div class="left"><h3>광역별 보유 평가액 순위</h3><p>전국 17개 시·도 가로 막대</p></div>
+        </div>
+        <div class="chart-wrap h-400"><canvas id="regionAmt"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="left"><h3>광역별 1인당 평균 보유액</h3><p>전국 평균 714만원 기준 비교</p></div>
+        </div>
+        <div class="chart-wrap h-400"><canvas id="regionPerCap"></canvas></div>
+      </div>
+    </div>
+
+    <div class="insight-block" style="--insight-color:#fbbf24">
+      <div class="label">SAM Insight · 지역 분포 해석</div>
+      <h4>"수도권 76% vs 비수도권 24%" — 시장 한계인가, 미개척 기회인가</h4>
+      <p>
+        서울(41.8%) + 경기(31.2%) + 인천(3.4%) 합산이 <strong>76.3%</strong>. 부산·대구·대전·광주 광역시 4곳을 합쳐도 10.0%에 그칩니다.
+        반면 1인당 평균 보유액에서는 <strong>서울 874만원, 경기 740만원, 충남 714만원, 충북 639만원, 대전 605만원</strong>으로 충남·충북·대전이 전국 평균(714만원) 수준 또는 그 이상 — 즉 <strong>지방은 "수가 적을 뿐 고액 소수가 존재"하는 시장</strong>입니다.
+      </p>
+      <p>
+        충남 천안시(22.3B) · 충북 청주시(21.2B) · 경남 창원시(22.2B)는 단일 시 단위로 광주광역시 전체(20.8B)를 능가합니다. 광역 단위 평균값에 가려진 <strong>"지방 거점 도시"의 잠재력</strong>이 확인됩니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>천안·청주·창원·전주를 "지방 거점 4대 도시"로 분류, 별도 IR 캠페인 트랙 신설</li>
+          <li>광역시별로 일률적 마케팅 대신 시·구 단위 차별화 메시지(대전 유성구·서구는 강남급 대접)</li>
+          <li><strong>SK하이닉스 본사가 위치한 청주(충북) · 이천(경기)</strong>는 5월 말 상장 예정인 KODEX SK하이닉스 레버리지의 핵심 거점 — 별도 마케팅 트랙 우선 편성</li>
+          <li>제주·강원·전남은 디지털 풀퍼널 채널(MTS 푸시·유튜브 타겟)로 비용효율 진입</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- NARRATIVE -->
+  <div class="narrative">
+    <div class="lab">◆ FIELD NOTE · 현장 관점</div>
+    <blockquote>반도체 ETF 시장은 "전국적 상품"처럼 보이지만, 실제로는 강남 3구·분당·수원·동탄을 잇는 IT 벨트가 절반 이상을 받치고 있다. 이 벨트가 살아있는 한 시장은 안전하지만, 새로운 성장은 이 벨트 바깥에서 만들어야 한다.</blockquote>
+    <div class="src">— ETF Planning Team, 내부 검토 메모</div>
+  </div>
+
+  <!-- § 3. HEATMAP -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">§ 03</span>
+      <span class="section-title">종목 × 광역 매트릭스</span>
+      <span class="section-desc">어떤 지역에서 어떤 종목이 강한가</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>종목·지역 히트맵</h3><p>각 셀 = 해당 광역의 해당 종목 AUM (백만원). 종목별 상대값으로 색상 강도 결정.</p></div>
+        <div class="right">SCALE: 종목내 상대값</div>
+      </div>
+      <div id="heatmap"></div>
+    </div>
+
+    <div class="insight-block" style="--insight-color:#14b8a6">
+      <div class="label">SAM Insight · 종목별 지역 강세 패턴</div>
+      <h4>KODEX는 IT 벨트, TIGER는 전국 균질 — 종목별 DNA가 다르다</h4>
+      <p>
+        히트맵을 보면 <strong>KODEX 반도체레버리지는 서울·경기에 95% 이상 집중</strong>되어 있습니다. 비수도권 광역에서 KODEX 레버리지 보유액이 0인 곳이 6개(부산·대구·강원·전남·제주·세종) — 전형적 "수도권 액티브 상품" 분포입니다.
+      </p>
+      <p>
+        반면 TIGER TOP10은 17개 광역 모두에서 의미있는 보유 규모를 보이며, 특히 <strong>강원(70.2%)·전남(82.1%)·제주(95.8%)</strong>에서는 사실상 단일 상품처럼 작동합니다. 비수도권 = TIGER의 무대라는 비대칭 구도가 명확합니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>KODEX 레버리지의 비수도권 진입은 단기 무리. 대신 KODEX AI반도체로 비수도권 첫 거점 마련</li>
+          <li>"KODEX 반도체 → KODEX AI반도체 → KODEX 레버리지" 단계적 업그레이드 funnel 설계</li>
+          <li>TIGER TOP10이 강한 지방 광역에 KODEX 신규 테마 ETF(로보틱스 등) 첫 거점 활용</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- § 4. CITIES -->
+  <div class="section" id="cities">
+    <div class="section-header">
+      <span class="section-num">§ 04</span>
+      <span class="section-title">상위 시·구 경쟁구도</span>
+      <span class="section-desc">AUM 상위 시·구에서의 6종 점유 비교</span>
+    </div>
+    <div class="filter-row" id="topNFilter">
+      <span class="pill active" data-n="10">TOP 10</span>
+      <span class="pill" data-n="15">TOP 15</span>
+      <span class="pill" data-n="20">TOP 20</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>시·구별 종목 점유 (스택 막대)</h3><p>막대 길이 = 총 AUM, 색상 = 종목별 점유</p></div>
+        <div class="right" id="topNLabel">TOP 10</div>
+      </div>
+      <div class="chart-wrap h-400"><canvas id="cityStack"></canvas></div>
+    </div>
+
+    <div class="insight-block" style="--insight-color:#fb923c">
+      <div class="label">SAM Insight · 거점 도시 경쟁 양상</div>
+      <h4>"강남·서초·성남·수원·화성" — 대한민국 반도체 ETF의 5대 본진</h4>
+      <p>
+        AUM 상위 5개 시·구의 합계는 약 <strong>3,489억원</strong>으로 전국 AUM의 27.9%. 이 중 4곳(성남·수원·화성·용인)은 경기 남부 IT 벨트입니다.
+        흥미로운 건 시·구마다 종목 믹스가 다르다는 점 — <strong>성남시(분당)는 KODEX 레버리지 비중 압도적</strong>, <strong>화성시(동탄)는 KODEX 반도체 본편 강세</strong>, <strong>강남구는 6종 모두 균형 보유</strong>로 가장 다각화되어 있습니다.
+      </p>
+      <p>
+        이는 단순히 "부자 동네"라서가 아니라, <strong>지역 산업 구조와 거주 인구 직군이 종목 선택에 직접 영향</strong>을 준다는 신호입니다. 삼성전자·SK하이닉스 임직원이 많은 화성·수원·이천에서 반도체 본편 ETF 비중이 높은 것은 자연스러운 결과입니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>5대 본진(강남·서초·성남·수원·화성)을 "Tier 1 City"로 분류 — <strong>KODEX AI반도체TOP2+ 리브랜딩 안내 1차 노출 권역</strong>으로 활용</li>
+          <li>화성·수원·천안 등 반도체 산업 인접 도시는 KODEX AI반도체TOP2+ 컨셉이 가장 잘 통하는 지역 — 산업단지 내 사내방송·게시판 활용 검토</li>
+          <li>분당(성남시)는 1인당 보유금액 가장 높은 거점 — <strong>KODEX 반도체위클리커버드콜 출시 시 프리미엄 인컴 상품으로 우선 노출</strong></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- § 5. SCATTER -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">§ 05</span>
+      <span class="section-title">고액 vs 다수 — 시·구 산점도</span>
+      <span class="section-desc">x: 인원수, y: AUM, 점 크기: 1인당 보유금액</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>시·구 분포 (전체)</h3><p>오른쪽 상단 = 고액·다수 / 왼쪽 위 = 소수 고액 / 오른쪽 아래 = 다수 소액</p></div>
+        <div class="right" id="scatterCount"></div>
+      </div>
+      <div class="chart-wrap h-500"><canvas id="scatter"></canvas></div>
+      <div id="scatterLegend"></div>
+    </div>
+
+    <div class="insight-block" style="--insight-color:#5b8def">
+      <div class="label">SAM Insight · 4사분면 분류</div>
+      <h4>4가지 시장 유형 — 차별화된 접근이 필요한 이유</h4>
+      <p>
+        <strong>① 고액·다수 (Q1: 강남·서초·성남·수원)</strong> — 가장 두꺼운 본진. 신규 상품 출시 시 1차 노출 필수.<br>
+        <strong>② 소수·고액 (Q2: 분당 일부, 서초)</strong> — 1인당 보유금액이 매우 높지만 인원 절대 수 적음. 프라이빗 IR로 효율적 접근.<br>
+        <strong>③ 다수·중액 (Q3: 부평구·구로구·관악구)</strong> — 인원은 많지만 1인당 보유금액 낮음. 디지털 채널과 자동투자 캠페인이 효과적.<br>
+        <strong>④ 소수·소액 (Q4: 비수도권 군 단위)</strong> — 점유율 미미하지만 향후 광역 단위 캠페인 노출 시 가성비 평가 영역.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>4사분면 매핑 결과를 마케팅 부서·영업 채널과 공유, 시·구 단위 예산 배분 기준으로 활용</li>
+          <li>Q1 본진 도시 6곳에 "신상품 베타 테스트 시범 노출" 권한 부여</li>
+          <li>Q3 다수·중액 지역은 적립식·자동투자 상품과 묶어 1인당 보유금액 끌어올리기</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- § 6. PER-CAPITA -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">§ 06</span>
+      <span class="section-title">1인당 보유금액 양극단</span>
+      <span class="section-desc">시·구 단위 1인당 보유액 — TOP 15 vs BOTTOM 15</span>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><div class="left"><h3 style="color:#fcd34d">▲ TOP 15 — 1인당 보유금액 상위</h3><p>고액 투자자 밀집 지역</p></div></div>
+        <table class="tbl">
+          <thead><tr><th>#</th><th>시·구</th><th>광역</th><th class="num">1인당(만원)</th><th></th></tr></thead>
+          <tbody id="topPerCap"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="left"><h3 style="color:#fda4af">▼ BOTTOM 15 — 1인당 보유금액 하위</h3><p>대중 투자자 분포 지역</p></div></div>
+        <table class="tbl">
+          <thead><tr><th>#</th><th>시·구</th><th>광역</th><th class="num">1인당(만원)</th><th></th></tr></thead>
+          <tbody id="botPerCap"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="insight-block" style="--insight-color:#fbbf24">
+      <div class="label">SAM Insight · 1인당 보유금액 격차</div>
+      <h4>1인당 보유금액 1위와 꼴찌의 차이는 약 5배 — 그 격차가 곧 기회다</h4>
+      <p>
+        TOP 15 평균 1인당 보유금액은 <strong>약 1,000만원대</strong>, BOTTOM 15 평균은 <strong>약 200만원대</strong>. 같은 ETF 시장 안에서 5배 가까운 보유금액 격차가 존재합니다.
+        BOTTOM 권역은 "관심은 있으나 첫 매수 규모가 작은" 초입 투자자가 다수 — <strong>적립식·소액 자동투자 상품과 결합하면 자연스러운 1인당 보유금액 상승</strong>을 유도할 수 있습니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>BOTTOM 권역 대상 "월 10만원 자동투자" 캠페인으로 진입 장벽 낮추기</li>
+          <li>TOP 권역에는 신상품 첫 배포 시 "프리미엄 얼리액세스" 컨셉 활용</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- § 7. SEOUL & GG -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">§ 07</span>
+      <span class="section-title">수도권 심층 분석</span>
+      <span class="section-desc">서울 25개 구 + 경기 31개 시·군 종목별 분포</span>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <div class="left"><h3>서울 25개 구 — AUM 순위</h3><p>전체 522.6B 중 분포</p></div>
+          <div class="right">서울 = 전국 41.8%</div>
+        </div>
+        <div class="chart-wrap h-500"><canvas id="seoulBar"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="left"><h3>경기 시·군 — AUM 순위 (TOP 15)</h3><p>전체 390.2B 중 분포</p></div>
+          <div class="right">경기 = 전국 31.2%</div>
+        </div>
+        <div class="chart-wrap h-500"><canvas id="ggBar"></canvas></div>
+      </div>
+    </div>
+
+    <div class="insight-block" style="--insight-color:#fb923c">
+      <div class="label">SAM Insight · 수도권 내부 균열</div>
+      <h4>같은 "수도권"이라도 강북과 강남, 북부와 남부는 완전히 다른 시장</h4>
+      <p>
+        서울 내부에서도 강남구(96B)와 도봉구(2.8B)는 <strong>AUM 격차가 34배</strong>. 경기 내부에서도 성남(80.7B)과 포천(0.05B) 차이가 1,600배가 넘습니다.
+        "수도권 마케팅"이라는 단일 카테고리는 더 이상 유효하지 않으며, <strong>구·시 단위로 잘게 쪼갠 마이크로 타겟팅</strong>이 필요합니다.
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════ § 8. 1인당 보유금액 분포 ═══════ -->
+  <div class="section" id="dist">
+    <div class="section-header">
+      <span class="section-num">§ 08</span>
+      <span class="section-title">1인당 보유금액 분포</span>
+      <span class="section-desc">전체 175,120명의 보유금액 구간별 분포</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>금액 구간별 보유자 수</h3><p>"전국 평균 714만원"이라는 단일 숫자 뒤에 가려진 진짜 분포</p></div>
+        <div class="right">N = 175,120명</div>
+      </div>
+      <div class="hist-row" id="histRow"></div>
+    </div>
+    <div class="insight-block" style="--insight-color:#5b8def">
+      <div class="label">SAM Insight · 분포 해석</div>
+      <h4>대중 소액 투자자가 시장의 70% — 그러나 AUM의 대부분은 고액 소수가 책임진다</h4>
+      <p>
+        500만원 미만 보유자가 전체의 <strong>약 71%</strong>를 차지하지만, 이들이 가진 AUM은 전국 합계의 일부에 불과합니다. 반대로 1,000만원 이상 보유자는 인원 13%에 불과해도 AUM 비중은 압도적입니다.
+        이는 <strong>"평균값"의 함정</strong>을 보여주는 전형적 분포 — 평균을 끌어올리는 건 소수 고액 보유자입니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>대중 70% 풀 → <strong>월 10만원 자동투자·적립식 캠페인</strong>으로 "꾸준한 1인당 증가" 유도</li>
+          <li>고액 13% 풀 → <strong>프리미엄 IR·신상품 얼리액세스</strong>로 객단가 유지·확대</li>
+          <li>중간 17% 풀 → "다음 단계로 올라가기" 메시지 (적립 → 일시납 전환 캠페인)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 9. 산업 인접도 산점도 ═══════ -->
+  <div class="section" id="industry">
+    <div class="section-header">
+      <span class="section-num">§ 09</span>
+      <span class="section-title">반도체 산업 인접도 × ETF 비중</span>
+      <span class="section-desc">"산업 종사자 거주 지역 = 자연 모객 풀" 가설 검증</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>산업 인접도 vs KODEX 반도체 비중</h3><p>x: 추정 반도체 산업 종사자 비중 / y: 6종 중 KODEX 반도체 비중 / 점 크기: AUM</p></div>
+        <div class="right">상관계수 r = 0.78</div>
+      </div>
+      <div class="chart-wrap h-400"><canvas id="industryScatter"></canvas></div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:14px;line-height:1.55;">
+        ※ 산업 인접도는 반도체 주요 사업장(삼성전자 화성·평택·기흥·수원, SK하이닉스 이천·청주) 인접 거리와 종사자 추정치 기반 지수. 외부 데이터로 정밀화 시 추가 분석 가능.
+      </div>
+    </div>
+    <div class="insight-block" style="--insight-color:#14b8a6">
+      <div class="label">SAM Insight · 산업 인접도 효과</div>
+      <h4>화성·수원·이천·평택은 "지역" 이전에 "산업 클러스터" — 종목 매칭이 정밀하다</h4>
+      <p>
+        반도체 산업 인접 5대 도시(화성·수원·이천·평택·청주)에서 KODEX 반도체 본편 비중이 평균 대비 <strong>1.5배 이상</strong> 높게 나타납니다. 이는 단순 인구 효과가 아니라 <strong>"업계 종사자가 자기 산업 ETF에 직접 투자한다"</strong>는 행동 패턴의 데이터적 입증입니다.
+      </p>
+      <p>
+        반대로 강남구는 산업 인접도가 낮음에도 KODEX 반도체 비중이 높음 — 이는 "산업 종사자형"이 아닌 "고소득 자산배분형" 보유자의 패턴입니다. <strong>두 가지 다른 페르소나가 공존</strong>한다는 의미.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>산업 인접 5대 도시는 "종사자 직군" 메시지 (예: 사내방송·기업 게시판·지역 영업점 활용)</li>
+          <li>강남·서초는 "포트폴리오 비중" 메시지 (자산배분 컨설팅 톤)</li>
+          <li>향후 신규 테마 ETF 출시 시 산업 인접 분석을 입지 전략 프레임으로 표준화</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 10. AUM 집중도 (로렌츠) ═══════ -->
+  <div class="section" id="concentration">
+    <div class="section-header">
+      <span class="section-num">§ 10</span>
+      <span class="section-title">AUM 집중도 — 로렌츠 곡선</span>
+      <span class="section-desc">"몇 개의 시·구가 시장 전체를 책임지는가"</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>시·구 수 누적 비율 vs AUM 누적 비율</h3><p>대각선과 멀어질수록 집중도 높음 · 지니 계수로 정량화</p></div>
+      </div>
+      <div class="chart-wrap h-400"><canvas id="lorenzChart"></canvas></div>
+      <div class="lorenz-stats">
+        <div class="lorenz-stat">
+          <div class="l">지니 계수</div>
+          <div class="v warn" id="giniValue">—</div>
+          <div class="desc">0(완전 평등) ~ 1(완전 집중). 0.7+ 부터 매우 높은 집중도.</div>
+        </div>
+        <div class="lorenz-stat">
+          <div class="l">상위 10% 시·구 점유율</div>
+          <div class="v" id="top10Value">—</div>
+          <div class="desc">전체 시·구 중 상위 10개의 AUM 누적 점유율.</div>
+        </div>
+        <div class="lorenz-stat">
+          <div class="l">상위 5개 = 하위 80개</div>
+          <div class="v">근사 동등</div>
+          <div class="desc">상위 5개 시·구의 AUM ≈ 하위 80개 시·구 합산.</div>
+        </div>
+      </div>
+    </div>
+    <div class="insight-block" style="--insight-color:#fbbf24">
+      <div class="label">SAM Insight · 시장 집중도</div>
+      <h4>"파레토의 법칙"보다 더 극단적 — 상위 5%가 시장의 60% 이상을 책임진다</h4>
+      <p>
+        반도체 ETF 시장은 일반적인 80/20 법칙보다 <strong>훨씬 극단적인 집중 구조</strong>입니다. 이는 양면적 의미를 가집니다 — ① 상위 시·구 변동성이 전체 AUM에 직격탄 (리스크), ② 상위 시·구만 집중 관리하면 전체 시장을 통제 가능 (효율).
+      </p>
+      <p>
+        분기별 지니 계수 추이를 추적하면 "ETF 시장 민주화 vs 양극화"를 한 숫자로 진단 가능합니다.
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════ § 11. 광역 내부 편차 ═══════ -->
+  <div class="section" id="variance">
+    <div class="section-header">
+      <span class="section-num">§ 11</span>
+      <span class="section-title">광역 내부 편차</span>
+      <span class="section-desc">같은 광역 안에서 시·구별 AUM이 얼마나 차이나는가</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>광역별 시·구 AUM 편차 — 변동계수(CV)</h3><p>변동계수가 클수록 광역 내부에서 시·구별 격차가 큼</p></div>
+        <div class="right">CV = σ / μ</div>
+      </div>
+      <table class="tbl">
+        <thead>
+          <tr><th>#</th><th>광역</th><th class="num">시·구 수</th><th class="num">최대값(B)</th><th class="num">최소값(B)</th><th class="num">최대/최소</th><th class="num">변동계수</th><th>편차 시각화</th></tr>
+        </thead>
+        <tbody id="varianceTable"></tbody>
+      </table>
+    </div>
+    <div class="insight-block" style="--insight-color:#fb923c">
+      <div class="label">SAM Insight · 광역 단위의 한계</div>
+      <h4>"광역 단위 마케팅"이 작동하는 광역과 무력한 광역이 명확히 구분된다</h4>
+      <p>
+        편차가 작은 광역(충북·전남·강원 등)은 <strong>거점 도시 1~2곳에 집중</strong>하면 광역 전체에 도달 가능합니다. 반면 편차가 매우 큰 서울·경기는 <strong>구·시 단위 마이크로 타겟팅</strong> 외엔 답이 없습니다.
+      </p>
+      <p>
+        광역 단위 일률 캠페인은 편차 작은 광역에서만 ROI가 나오고, 편차 큰 광역에서는 예산 낭비로 직결됨을 데이터로 확인할 수 있습니다.
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════ § 12. 지도 ═══════ -->
+  <div class="section" id="map">
+    <div class="section-header">
+      <span class="section-num">§ 12</span>
+      <span class="section-title">전국 광역 분포 지도</span>
+      <span class="section-desc">17개 시·도 AUM 농도 지리적 시각화</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>광역시·도별 AUM 히트 맵</h3><p>색상이 진할수록 보유 평가액 높음 · 마우스오버로 상세 확인</p></div>
+        <div class="right">SCALE: AUM 절대값</div>
+      </div>
+      <div class="map-wrap">
+        <div class="map-svg-wrap">
+          <div class="map-tooltip" id="mapTooltip"></div>
+          <svg viewBox="0 0 400 500" id="koreaMap" xmlns="http://www.w3.org/2000/svg">
+            <!-- 단순화된 한국 광역 SVG 영역들 -->
+            <!-- 강원 -->
+            <rect class="map-region" data-name="강원" x="240" y="60" width="110" height="90" rx="12"></rect>
+            <text class="map-label" x="295" y="110">강원</text>
+            <!-- 경기 -->
+            <rect class="map-region" data-name="경기" x="155" y="80" width="80" height="100" rx="12"></rect>
+            <text class="map-label" x="195" y="135">경기</text>
+            <!-- 서울 -->
+            <rect class="map-region" data-name="서울" x="170" y="105" width="40" height="30" rx="6"></rect>
+            <text class="map-label" x="190" y="123">서울</text>
+            <!-- 인천 -->
+            <rect class="map-region" data-name="인천" x="120" y="115" width="32" height="35" rx="8"></rect>
+            <text class="map-label" x="136" y="136">인천</text>
+            <!-- 충북 -->
+            <rect class="map-region" data-name="충북" x="200" y="185" width="80" height="55" rx="10"></rect>
+            <text class="map-label" x="240" y="216">충북</text>
+            <!-- 충남 -->
+            <rect class="map-region" data-name="충남" x="115" y="185" width="80" height="55" rx="10"></rect>
+            <text class="map-label" x="155" y="216">충남</text>
+            <!-- 세종 -->
+            <rect class="map-region" data-name="세종" x="170" y="205" width="28" height="22" rx="6"></rect>
+            <text class="map-label" x="184" y="220" style="font-size:8px">세종</text>
+            <!-- 대전 -->
+            <rect class="map-region" data-name="대전" x="180" y="245" width="36" height="26" rx="6"></rect>
+            <text class="map-label" x="198" y="262">대전</text>
+            <!-- 경북 -->
+            <rect class="map-region" data-name="경북" x="285" y="155" width="100" height="100" rx="12"></rect>
+            <text class="map-label" x="335" y="208">경북</text>
+            <!-- 대구 -->
+            <rect class="map-region" data-name="대구" x="285" y="260" width="42" height="32" rx="6"></rect>
+            <text class="map-label" x="306" y="280">대구</text>
+            <!-- 울산 -->
+            <rect class="map-region" data-name="울산" x="345" y="270" width="40" height="28" rx="6"></rect>
+            <text class="map-label" x="365" y="288">울산</text>
+            <!-- 부산 -->
+            <rect class="map-region" data-name="부산" x="320" y="305" width="50" height="30" rx="6"></rect>
+            <text class="map-label" x="345" y="324">부산</text>
+            <!-- 경남 -->
+            <rect class="map-region" data-name="경남" x="225" y="290" width="90" height="65" rx="10"></rect>
+            <text class="map-label" x="270" y="325">경남</text>
+            <!-- 전북 -->
+            <rect class="map-region" data-name="전북" x="115" y="245" width="100" height="55" rx="10"></rect>
+            <text class="map-label" x="165" y="276">전북</text>
+            <!-- 광주 -->
+            <rect class="map-region" data-name="광주" x="130" y="305" width="42" height="28" rx="6"></rect>
+            <text class="map-label" x="151" y="323">광주</text>
+            <!-- 전남 -->
+            <rect class="map-region" data-name="전남" x="115" y="335" width="105" height="65" rx="10"></rect>
+            <text class="map-label" x="167" y="370">전남</text>
+            <!-- 제주 -->
+            <rect class="map-region" data-name="제주" x="145" y="430" width="90" height="42" rx="10"></rect>
+            <text class="map-label" x="190" y="455">제주</text>
+          </svg>
+        </div>
+        <div class="map-side">
+          <div class="legend-list">
+            <div class="scale-title">AUM 스케일</div>
+            <div class="legend-row"><span class="sw" style="background:#1d3a8a"></span>100B+ (서울·경기)</div>
+            <div class="legend-row"><span class="sw" style="background:#2451d3"></span>30~100B</div>
+            <div class="legend-row"><span class="sw" style="background:#5b8def"></span>12~30B</div>
+            <div class="legend-row"><span class="sw" style="background:#93b9ff"></span>7~12B</div>
+            <div class="legend-row"><span class="sw" style="background:#bcd0ee"></span>4~7B</div>
+            <div class="legend-row"><span class="sw" style="background:#dde7f7"></span>~4B</div>
+          </div>
+          <div style="font-size:12px;color:var(--text-2);line-height:1.65">
+            <p style="margin-bottom:10px"><strong style="color:var(--text)">서울·경기 두 광역</strong>이 색상이 가장 진하게 표시되며, 전국 AUM의 73%를 차지하는 압도적 집중 구조를 시각적으로 확인할 수 있습니다.</p>
+            <p>제주·세종은 가장 옅은 색으로, 시장 침투가 거의 일어나지 않은 미개척 영역임을 한눈에 파악 가능합니다.</p>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text-3);margin-top:16px;line-height:1.5">
+        ※ 본 지도는 직관적 비교를 위한 단순화된 도형 기반 시각화. 정밀 GeoJSON 기반 지도는 별도 제작 가능.
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 13. 종목 페어 비교 ═══════ -->
+  <div class="section" id="pair">
+    <div class="section-header">
+      <span class="section-num">§ 13</span>
+      <span class="section-title">종목 페어 직접 비교</span>
+      <span class="section-desc">두 종목을 광역별로 좌·우 분할 비교</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>광역별 점유 — 어느 지역에서 어느 종목이 우세한가</h3><p>두 종목을 선택하면 각 광역의 보유액을 비례 막대로 비교</p></div>
+      </div>
+      <div class="pair-toggle-row">
+        <span class="label">LEFT:</span>
+        <select class="pair-select" id="pairLeft">
+          <option value="0">KODEX 반도체</option>
+          <option value="1">KODEX 레버리지</option>
+          <option value="2">KODEX AI반도체 (→TOP2+)</option>
+          <option value="3">TIGER 반도체</option>
+          <option value="4" selected>TIGER TOP10</option>
+          <option value="5">TIGER 레버리지</option>
+        </select>
+        <span class="label">VS</span>
+        <span class="label">RIGHT:</span>
+        <select class="pair-select" id="pairRight">
+          <option value="0" selected>KODEX 반도체</option>
+          <option value="1">KODEX 레버리지</option>
+          <option value="2">KODEX AI반도체 (→TOP2+)</option>
+          <option value="3">TIGER 반도체</option>
+          <option value="4">TIGER TOP10</option>
+          <option value="5">TIGER 레버리지</option>
+        </select>
+      </div>
+      <div class="pair-header">
+        <div class="h-l" id="pairHL">TIGER TOP10</div>
+        <div class="h-c">광역</div>
+        <div class="h-r" id="pairHR">KODEX 반도체</div>
+      </div>
+      <div class="pair-bars" id="pairBars"></div>
+    </div>
+    <div class="insight-block" style="--insight-color:#5b8def">
+      <div class="label">SAM Insight · 페어 비교 활용법</div>
+      <h4>경쟁 종목 비교는 "지역 침투 격차"를 한눈에 보여준다</h4>
+      <p>
+        TIGER TOP10 vs KODEX 반도체를 비교하면, 비수도권 광역에서 TIGER가 압도적으로 강세인 반면 수도권 IT 벨트(경기·서울)에서는 KODEX가 상대적으로 점유율을 회복합니다.
+        이런 페어 비교는 <strong>"어느 지역에서 어느 종목으로 싸울 것인가"</strong>의 의사결정 프레임을 만들어줍니다.
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════ § 14. 연령 × 성별 매트릭스 ═══════ -->
+  <div class="section" id="agesex">
+    <div class="section-header">
+      <span class="section-num">§ 14</span>
+      <span class="section-title">연령 × 성별 매트릭스</span>
+      <span class="section-desc">5×2 핵심 매트릭스 — 시장의 진짜 모집단</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>연령대 × 성별 — 보유 패턴</h3><p>전체 61,335명을 5개 연령대 × 남/여 10개 셀로 분해. 토글로 측정값 전환.</p></div>
+      </div>
+      <div class="filter-row" id="ageSexToggle">
+        <span class="pill" data-metric="amt">총보유금액</span>
+        <span class="pill" data-metric="cnt">보유 인원</span>
+        <span class="pill active" data-metric="perCap">1인당 보유금액</span>
+      </div>
+      <div id="ageSexMatrix"></div>
+    </div>
+    <div class="insight-block" style="--insight-color:#f43f5e">
+      <div class="label">SAM Insight · 세그먼트 비대칭</div>
+      <h4>"평균 956만원" 뒤에 14배 격차가 숨어있다</h4>
+      <p>
+        60대이상 남성 1인당 <strong>2,564만원</strong> vs 20대 여성 <strong>185만원</strong> — 같은 시장 안에서 <strong>약 14배의 객단가 격차</strong>가 존재합니다.
+        남성 평균(1,591만) vs 여성 평균(535만)도 약 3배 차이. 단일 평균값으로 시장을 읽으면 <strong>핵심 의사결정이 모두 빗나갑니다</strong>.
+      </p>
+      <p>
+        흥미로운 건 <strong>"인원 vs 금액" 역전</strong>입니다. 인원 기준 1위는 50대 여성(10,873명), 금액 기준 1위는 50대 남성(1,367억).
+        같은 50대인데도 행동 패턴(액티브 매매 vs 안정형)이 완전히 다른 두 풀로 나뉩니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>마케팅 메시지를 "전 연령 통합" 대신 <strong>10개 셀별로 분리 제작</strong> — 같은 ETF도 50대 남성에겐 "포트폴리오 비중", 20대 여성에겐 "월 10만원 시작"</li>
+          <li>50대 여성 10,873명은 <strong>인원 최대 풀이지만 객단가 653만원에 정체</strong> — 적립식·자동투자로 단가 증가 캠페인 1순위</li>
+          <li>60대+ 남성 3,775명은 <strong>"숫자는 적지만 평균 2,564만"</strong> — 별도 프라이빗 채널·세제 안내 강화</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 15. 종목 × 연령 분포 ═══════ -->
+  <div class="section" id="prodage">
+    <div class="section-header">
+      <span class="section-num">§ 15</span>
+      <span class="section-title">종목 × 연령 분포</span>
+      <span class="section-desc">각 종목의 연령별 보유 패턴 = 종목별 페르소나</span>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><div class="left"><h3>종목별 연령 구성 (AUM 누적)</h3><p>각 종목이 어떤 연령대에 두께를 형성하는지</p></div></div>
+        <div class="chart-wrap h-400"><canvas id="prodAgeStack"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="left"><h3>종목별 연령대 1인당 보유액</h3><p>같은 종목 안에서 연령에 따른 객단가 변화 곡선</p></div></div>
+        <div class="chart-wrap h-400"><canvas id="prodAgePerCap"></canvas></div>
+      </div>
+    </div>
+    <div class="insight-block" style="--insight-color:#fbbf24">
+      <div class="label">SAM Insight · 종목별 페르소나</div>
+      <h4>같은 "반도체 ETF"라도 종목마다 모이는 사람이 다르다</h4>
+      <p>
+        <strong>KODEX 레버리지·TIGER TOP10 레버리지</strong>는 50대 남성에 두께가 집중되며, 20대는 거의 보유하지 않습니다 — "액티브 트레이딩" 페르소나.
+        <strong>KODEX AI반도체</strong>는 모든 연령대에 비교적 균질하게 분포 — "테마 친화적" 페르소나로 신규 유입에 유리합니다.
+        <strong>TIGER TOP10</strong>은 20·30대에서도 보유 비중이 높음 — 사실상 <strong>"국민 반도체 ETF"</strong>로 자리 잡은 모습입니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>레버리지 2종 마케팅은 <strong>40~50대 남성 중심 채널</strong>(증권 유튜브, 트레이딩 커뮤니티)로 배분</li>
+          <li>AI반도체TOP2+ 리브랜딩은 30~40대 풀의 객단가 끌어올리는 메시지가 가장 효율적</li>
+          <li>젊은 층(20~30대) 신규 유입은 TIGER TOP10이 가장 친숙한 진입로 — KODEX는 "다음 단계 업그레이드 상품"으로 포지셔닝</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 16. 종목 × 성별 편향 ═══════ -->
+  <div class="section" id="sexbias">
+    <div class="section-header">
+      <span class="section-num">§ 16</span>
+      <span class="section-title">종목 × 성별 편향도</span>
+      <span class="section-desc">레버리지 = 남성, 일반 = 균형 — 명확한 페르소나 구분</span>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="left"><h3>종목별 남·여 보유금액 비중</h3><p>각 종목 안에서 남성과 여성이 차지하는 AUM 비율</p></div></div>
+      <div id="sexBiasChart"></div>
+    </div>
+    <div class="insight-block" style="--insight-color:#5b8def">
+      <div class="label">SAM Insight · 성별 편향의 의미</div>
+      <h4>"레버리지일수록 남성, 일반일수록 균형" — 이 패턴이 곧 마케팅 채널이다</h4>
+      <p>
+        TIGER TOP10 레버리지는 <strong>남성 87.0%</strong>, KODEX 레버리지 78.5%로 극심한 남성 편향. 반면 일반 KODEX 반도체·TIGER TOP10은 60% 내외로 비교적 균형.
+        이는 단순 통계가 아니라 <strong>"단일 종목 레버리지 = 남성 액티브 투자자"</strong>라는 페르소나가 데이터로 확인된 것이며,
+        5월 말 상장하는 <strong>삼성전자/SK하이닉스 레버리지의 핵심 타겟이 누구인지</strong>를 명확히 알려줍니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>단일종목 레버리지 2종(삼전·하이닉스 LEV) 마케팅 — 채널 우선순위: <strong>남성 트레이딩 유튜브 → 증권 커뮤니티 → MTS 푸시</strong></li>
+          <li>여성 비중이 상대적으로 높은 KODEX AI반도체·TIGER TOP10에 <strong>"포트폴리오 입문" 메시지</strong> 강화</li>
+          <li>레버리지 상품 설명 자료에는 변동성 위험 경고를 더 강하게 — 액티브 남성은 위험 감수 성향이 높음을 데이터로 확인 (사회적 책임)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 17. VVIP 풀 (60대+ × 레버리지) ═══════ -->
+  <div class="section" id="vvip">
+    <div class="section-header">
+      <span class="section-num">§ 17</span>
+      <span class="section-title">VVIP 풀 — 60대+ × 레버리지</span>
+      <span class="section-desc">1인당 1.6억원, 시장 최고 객단가 세그먼트</span>
+    </div>
+
+    <div class="vvip-stats">
+      <div class="vvip-card">
+        <div class="lab">60대+ 남성 · KODEX 레버리지 1인당</div>
+        <div class="val" id="vvipMaleAvg">—</div>
+        <div class="desc">전체 평균(956만원)의 <strong>약 17배</strong>. 시장에서 가장 높은 단일 객단가 세그먼트.</div>
+      </div>
+      <div class="vvip-card">
+        <div class="lab">60대+ 여성 · KODEX 레버리지 1인당</div>
+        <div class="val" id="vvipFemaleAvg">—</div>
+        <div class="desc">남성 못지않은 객단가. 인원은 적어도 1명당 임팩트 매우 큼.</div>
+      </div>
+      <div class="vvip-card">
+        <div class="lab">VVIP 풀 총 인원</div>
+        <div class="val" id="vvipTotalCnt">—</div>
+        <div class="desc">KODEX 레버리지 60대+ 보유자 전체. 별도 트랙으로 관리 가능한 규모.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="left"><h3>광역별 레버리지 AUM × 60대+ 인원</h3><p>VVIP 풀이 가장 두꺼운 광역</p></div></div>
+      <div id="vvipTable"></div>
+    </div>
+
+    <div class="insight-block" style="--insight-color:#f43f5e">
+      <div class="label">SAM Insight · VVIP 풀의 진짜 의미</div>
+      <h4>"154명이 시장의 대부분을 책임진다" — 이 풀을 지키는 게 곧 AUM 안정성</h4>
+      <p>
+        60대+ 남성 KODEX 레버리지 보유자 107명의 1인당이 <strong>1.6억원</strong>이라는 건, <strong>이 100여 명의 행동 한 번이 전체 AUM을 흔들 수 있다</strong>는 의미입니다.
+        반대로 이 풀에 새로운 상품(특히 5월 말 상장 예정인 삼성전자·SK하이닉스 단일종목 레버리지)을 효과적으로 노출하면 <strong>1인 1.6억급 전환</strong>이 가능합니다.
+      </p>
+      <p>
+        지역적으로는 <strong>서울·경기에 집중</strong>되어 있어 오프라인 PB 채널과 결합한 프라이빗 IR이 가능한 규모입니다.
+        대중 채널 마케팅으로는 절대 도달할 수 없는 풀이며, <strong>전담 RM(Relationship Manager) 운영이 ROI상 정당화</strong>되는 유일한 세그먼트입니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>VVIP 풀 154명 전원 대상 <strong>"신규 단일종목 레버리지 사전 안내" 1:1 IR</strong> — 5월 22일 상장 D-7부터 가동</li>
+          <li>증권사 VIP 팀과 공동 RM 프로그램 검토 — 1인 1.6억급 풀은 PB 채널 매칭 가치 충분</li>
+          <li>VVIP 풀 이탈 모니터링 KPI 신설 — 분기당 환매 5% 초과 시 즉시 retention 캠페인 트리거</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 18. 20대 여성 신규 풀 ═══════ -->
+  <div class="section" id="newpool">
+    <div class="section-header">
+      <span class="section-num">§ 18</span>
+      <span class="section-title">20대 여성 — 미개척 신규 풀</span>
+      <span class="section-desc">진입은 했지만 객단가 정체된 4,300명</span>
+    </div>
+
+    <div class="f20-summary">
+      <div class="f20-card">
+        <div class="lab">20대 여성 보유자 수</div>
+        <div class="val" id="f20TotalCnt">—</div>
+        <div class="desc">시장 전체에서 <strong>가장 큰 단일 신규 유입 풀</strong>. 객단가는 낮아도 학습 가능성 가장 높음.</div>
+      </div>
+      <div class="f20-card">
+        <div class="lab">20대 여성 1인당 보유</div>
+        <div class="val" id="f20PerCap">—</div>
+        <div class="desc">전체 평균 956만원 대비 <strong>1/5 수준</strong>. 진입 장벽 가장 낮은 구간 — 학습·습관 형성 단계.</div>
+      </div>
+      <div class="f20-card">
+        <div class="lab">전체 여성 중 비중</div>
+        <div class="val" id="f20PctOfWomen">—</div>
+        <div class="desc">여성 보유자의 약 1/8이 20대. <strong>30·40대로 자연 이동</strong>할 풀의 시작점.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="left"><h3>광역별 20대 여성 인원 분포</h3><p>이 풀이 어디에 가장 많이 거주하는가 — 디지털 캠페인 타겟팅 거점</p></div></div>
+      <div id="f20Section"></div>
+    </div>
+
+    <div class="insight-block" style="--insight-color:#14b8a6">
+      <div class="label">SAM Insight · 신규 유입 풀의 가치</div>
+      <h4>"지금 195만원이지만 10년 후 5,000만원 풀"이 될 수 있다 — 장기 LTV 관점</h4>
+      <p>
+        20대 여성 4,300명은 단기 AUM 임팩트는 작지만, <strong>이 풀이 30·40대로 성장하며 객단가가 자연 상승</strong>합니다.
+        실제로 같은 여성 풀에서 50대 객단가는 653만원, 60대는 1,134만원으로 <strong>연령이 올라갈수록 단가가 명확히 증가</strong>합니다.
+        지금 20대 여성에게 KODEX·TIGER 브랜드 노출을 확보하면, 향후 10~20년간 충성 보유자가 됩니다 — <strong>LTV(Life Time Value) 관점의 투자</strong>입니다.
+      </p>
+      <p>
+        지역적으로는 <strong>서울·경기에 70% 이상 집중</strong>되어 있어 디지털 광고 효율이 매우 높습니다.
+        특히 인스타그램·유튜브·카카오톡 같은 모바일 채널과 매칭이 잘 되는 풀입니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>20대 여성 풀 대상 <strong>"월 10만원 적립식 자동투자" 캠페인</strong>을 KODEX 라인업 우선 출시 — TIGER TOP10에 빼앗기지 않도록 선제 대응</li>
+          <li>인스타·유튜브 숏폼 광고 — 톤은 "투자 입문" 친근한 컨셉, ETF 용어 최소화</li>
+          <li>3년 후 이 풀의 30대 진입 시점에 객단가가 평균 300만원 이상으로 증가하는지 KPI 추적</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 19. 시·도 × 연령 매트릭스 ═══════ -->
+  <div class="section" id="sidoage">
+    <div class="section-header">
+      <span class="section-num">§ 19</span>
+      <span class="section-title">시·도 × 연령 인구통계 매핑</span>
+      <span class="section-desc">17개 광역의 5개 연령대 1인당 보유액 매트릭스</span>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="left"><h3>광역 × 연령대 — 1인당 보유액(만원)</h3><p>각 셀: 해당 광역의 해당 연령대 평균 객단가. 색상이 진할수록 객단가 높음.</p></div></div>
+      <div id="sidoAgeMatrix"></div>
+    </div>
+    <div class="insight-block" style="--insight-color:#fb923c">
+      <div class="label">SAM Insight · 지역별 인구통계 패턴</div>
+      <h4>"같은 60대라도 서울·경기와 지방은 다른 시장이다"</h4>
+      <p>
+        매트릭스를 보면 <strong>서울·경기의 60대+ 객단가가 압도적</strong>으로 높습니다 — 단순히 인구 효과가 아니라 <strong>"수도권 거주 = 누적 자산 형성"</strong>의 결과입니다.
+        반면 지방 광역에서는 50대가 60대보다 객단가가 높은 경우(대구·울산 등)가 자주 나타나는데, 이는 <strong>은퇴 후 자산 축소·환매</strong>가 수도권보다 빠르게 진행되는 패턴을 보여줍니다.
+      </p>
+      <p>
+        충북 20대 남성의 1,145만원은 이상치(outlier)로 보이며, <strong>특정 지역의 산업 종사자 거주 영향</strong>일 가능성이 큽니다 (충북=SK하이닉스 본사).
+        이런 이상치를 발견하는 게 곧 새로운 마케팅 거점을 찾는 일입니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>광역별 메시지를 <strong>"이 광역의 50대 OR 60대 풀에 맞춰 차별화"</strong> — 서울 60대는 자산 배분, 부산 60대는 인컴 안정 메시지</li>
+          <li>충북 20대 남성 같은 이상치 풀은 별도 분석 — 산업단지 종사자 직접 노출 채널 검토</li>
+          <li>지방 광역 50대는 인원이 두꺼운 풀 — 이 풀의 환매 패턴을 추적해 retention 시점 예측</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 20. 라이프사이클 객단가 진화 ═══════ -->
+  <div class="section" id="lifecycle">
+    <div class="section-header">
+      <span class="section-num">§ 20</span>
+      <span class="section-title">연령별 객단가 진화 곡선</span>
+      <span class="section-desc">한 사람이 20대 → 60대로 가면서 평균 보유액이 어떻게 변하는가</span>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><div class="left"><h3>연령대별 1인당 보유액 — 남·여 비교</h3><p>같은 시장 안에서 연령에 따라 객단가가 어떻게 진화하는지 한눈에</p></div></div>
+      <div class="chart-wrap h-400"><canvas id="lifecycleChart"></canvas></div>
+    </div>
+
+    <div class="progression-grid">
+      <div class="progression-card" style="--prog-color:#5b8def">
+        <div class="head-row"><div class="icon">M</div><div class="title">남성 객단가 진화</div></div>
+        <div class="desc">20대 458만 → 30대 893만 → 40대 1,588만 → 50대 1,833만 → 60대+ <strong>2,564만</strong>. 연령에 따라 거의 정비례로 증가. 60대까지 멈추지 않는 우상향.</div>
+        <div class="stat" id="maleProg">5.6배 증가</div>
+      </div>
+      <div class="progression-card" style="--prog-color:#f43f5e">
+        <div class="head-row"><div class="icon">F</div><div class="title">여성 객단가 진화</div></div>
+        <div class="desc">20대 185만 → 30대 278만 → 40대 552만 → 50대 653만 → 60대+ 1,134만. 남성보다 절대값은 낮지만 <strong>50대→60대 구간 큰 점프</strong>. 은퇴기 자산 정리 효과.</div>
+        <div class="stat" id="femaleProg">6.1배 증가</div>
+      </div>
+    </div>
+
+    <div class="insight-block" style="--insight-color:#5b8def">
+      <div class="label">SAM Insight · 라이프사이클 마케팅</div>
+      <h4>"이 풀은 5년 후 어디로 갈까?" — 시계열 예측이 곧 LTV 마케팅</h4>
+      <p>
+        20대 풀에 KODEX 브랜드를 노출시키면, 데이터상 <strong>30대로 진입할 때 객단가가 약 1.9배 증가</strong>합니다. 즉 지금 4,300명의 20대 여성이 보유한 80억은 5년 후 자연스럽게 240억 수준으로 성장할 가능성이 큽니다 (브랜드 retention 가정).
+        반면 50대 → 60대 구간에서는 <strong>여성이 남성보다 더 큰 폭의 객단가 점프</strong>가 일어나는데, 이는 은퇴 후 자산이 합쳐지거나 명의 이전이 일어나는 패턴일 수 있습니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>20·30대 풀의 retention 비율을 분기별 KPI로 추적 — 이 풀이 곧 미래 AUM</li>
+          <li>50대 여성 → 60대 여성 전환 구간을 <strong>"인컴 상품 추천 골든타임"</strong>으로 정의, 위클리CC 타겟팅</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 21. 세그먼트 트리맵 ═══════ -->
+  <div class="section" id="treemap">
+    <div class="section-header">
+      <span class="section-num">§ 21</span>
+      <span class="section-title">10개 세그먼트 풀 사이즈 맵</span>
+      <span class="section-desc">연령×성별 10개 셀의 시장 점유 비중 시각화</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>세그먼트별 AUM 비중 (트리맵 스타일)</h3><p>면적 = AUM 규모. 한 화면에 시장 점유 구조 한눈에.</p></div>
+      </div>
+      <div id="treemapWrap"></div>
+    </div>
+    <div class="insight-block" style="--insight-color:#fb923c">
+      <div class="label">SAM Insight · 풀 사이즈 우선순위</div>
+      <h4>50대 남성 한 풀이 시장의 23.3%를 책임진다</h4>
+      <p>
+        10개 세그먼트 중 <strong>50대 남성 한 풀이 23.3%</strong>로 압도적. 60대 남성(16.5%) + 40대 남성(17.9%) 합산하면 <strong>40·50·60대 남성 3개 풀이 시장의 57.7%</strong>를 차지합니다.
+        반대로 20대 남·여 + 30대 여성 합산은 6.4%에 불과 — <strong>현재 시장은 "중·장년 남성 시장"</strong>이라는 사실이 시각적으로 명확합니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>마케팅 예산 배분 가이드 — <strong>40·50·60대 남성 3개 풀에 60% 이상 집중</strong>이 ROI상 정당</li>
+          <li>20·30대 풀은 단기 ROI보다 <strong>5년 후 LTV 관점 투자</strong>로 명문화</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 22. 종목 선호도 인덱스 ═══════ -->
+  <div class="section" id="prefindex">
+    <div class="section-header">
+      <span class="section-num">§ 22</span>
+      <span class="section-title">성별 종목 선호도 인덱스</span>
+      <span class="section-desc">평균 대비 남성 / 여성이 더 선호하는 종목 (편향 정도 정량화)</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="left"><h3>종목별 선호도 인덱스 (PI)</h3><p>PI = 해당 성별의 종목 비중 / 전체 평균 비중. 1.0 = 평균, 1.5+ = 강한 선호, 0.7- = 약한 선호.</p></div>
+      </div>
+      <div id="prefIndexBlock"></div>
+    </div>
+    <div class="insight-block" style="--insight-color:#14b8a6">
+      <div class="label">SAM Insight · 선호도 편향 = 마케팅 자산</div>
+      <h4>"여성이 더 선호하는 종목"이 신규 유입 채널의 핵심 자산이다</h4>
+      <p>
+        편향이 강한 종목일수록 <strong>해당 성별 풀에 마케팅 효율이 압도적</strong>입니다. 예를 들어 KODEX AI반도체는 여성 PI가 1.27로 평균 이상 — 즉 <strong>"여성 신규 진입 게이트웨이 ETF"</strong>로 포지셔닝 가능.
+        반대로 KODEX 레버리지(남성 PI 1.27) · TIGER TOP10 레버리지(남성 PI 1.41)는 <strong>남성 액티브 풀 전용</strong>. 여성 채널 광고는 ROI가 거의 안 나오니 예산 분배에서 빠지는 게 효율적입니다.
+      </p>
+      <div class="actions">
+        <div class="a-label">▣ 기획팀 ACTION ITEMS</div>
+        <ul>
+          <li>여성 친화 종목(AI반도체·TIGER 반도체) → 인스타·여성 금융 커뮤니티 우선 광고 배분</li>
+          <li>레버리지 2종 → 남성 트레이딩 채널 100% 집중 (광고비 효율 극대화)</li>
+          <li>5월 출시 위클리CC는 출시 후 1분기 PI 추적 → 어느 성별이 더 빠르게 흡수하는지 모니터링</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ § 23. 6대 페르소나 카드 ═══════ -->
+  <div class="section" id="personas">
+    <div class="section-header">
+      <span class="section-num">§ 23</span>
+      <span class="section-title">6대 핵심 페르소나</span>
+      <span class="section-desc">각 세그먼트 1줄 요약 + 추천 상품 + 채널 — 마케팅 부서 공유용 카드</span>
+    </div>
+
+    <div class="persona-grid">
+
+      <div class="persona-card" style="--persona-color:#f43f5e;--persona-bg:rgba(244,63,94,0.06)">
+        <div class="icon-row">
+          <div class="persona-icon">👑</div>
+          <span class="persona-tag">VVIP · TIER 1</span>
+        </div>
+        <h4>60대+ 남성 자산가</h4>
+        <p class="summary">시장 객단가 정점. 154명이 전체 AUM의 결정적 부분 책임. 별도 PB 트랙 필수.</p>
+        <div class="stats-row">
+          <div class="stat-mini"><div class="lab">인원</div><div class="val">3,775명</div></div>
+          <div class="stat-mini"><div class="lab">1인당</div><div class="val">2,564만</div></div>
+          <div class="stat-mini"><div class="lab">AUM 비중</div><div class="val">16.5%</div></div>
+        </div>
+        <div class="reco-label">▣ 추천 상품</div>
+        <div class="reco-tags">
+          <span class="reco-tag">KODEX 레버리지</span>
+          <span class="reco-tag">단일종목 LEV</span>
+          <span class="reco-tag">위클리CC</span>
+        </div>
+        <div class="reco-label" style="margin-top:8px">▣ 채널</div>
+        <div class="reco-tags">
+          <span class="reco-tag">PB 1:1 IR</span>
+          <span class="reco-tag">VIP 세미나</span>
+        </div>
+      </div>
+
+      <div class="persona-card" style="--persona-color:#fbbf24;--persona-bg:rgba(251,191,36,0.06)">
+        <div class="icon-row">
+          <div class="persona-icon">🎯</div>
+          <span class="persona-tag">CORE · 시장 핵심</span>
+        </div>
+        <h4>50대 남성 액티브 트레이더</h4>
+        <p class="summary">시장 단일 최대 풀(AUM 23.3%). 5월 신규 라인업 1차 노출 풀. 모든 KODEX 출시의 게이트웨이.</p>
+        <div class="stats-row">
+          <div class="stat-mini"><div class="lab">인원</div><div class="val">7,459명</div></div>
+          <div class="stat-mini"><div class="lab">1인당</div><div class="val">1,833만</div></div>
+          <div class="stat-mini"><div class="lab">AUM 비중</div><div class="val">23.3%</div></div>
+        </div>
+        <div class="reco-label">▣ 추천 상품</div>
+        <div class="reco-tags">
+          <span class="reco-tag">KODEX 반도체</span>
+          <span class="reco-tag">단일종목 LEV</span>
+          <span class="reco-tag">AI TOP2+</span>
+        </div>
+        <div class="reco-label" style="margin-top:8px">▣ 채널</div>
+        <div class="reco-tags">
+          <span class="reco-tag">유튜브 트레이딩</span>
+          <span class="reco-tag">증권 커뮤니티</span>
+          <span class="reco-tag">MTS 푸시</span>
+        </div>
+      </div>
+
+      <div class="persona-card" style="--persona-color:#fb923c;--persona-bg:rgba(251,146,60,0.06)">
+        <div class="icon-row">
+          <div class="persona-icon">💼</div>
+          <span class="persona-tag">CORE · 인원 1위</span>
+        </div>
+        <h4>50대 여성 안정형 보유자</h4>
+        <p class="summary">시장 단일 최대 인원 풀(10,873명). 그러나 객단가 정체 — 끌어올리면 시장 임팩트 막대.</p>
+        <div class="stats-row">
+          <div class="stat-mini"><div class="lab">인원</div><div class="val">10,873명</div></div>
+          <div class="stat-mini"><div class="lab">1인당</div><div class="val">653만</div></div>
+          <div class="stat-mini"><div class="lab">AUM 비중</div><div class="val">12.1%</div></div>
+        </div>
+        <div class="reco-label">▣ 추천 상품</div>
+        <div class="reco-tags">
+          <span class="reco-tag">KODEX 위클리CC</span>
+          <span class="reco-tag">TIGER TOP10</span>
+          <span class="reco-tag">AI TOP2+</span>
+        </div>
+        <div class="reco-label" style="margin-top:8px">▣ 채널</div>
+        <div class="reco-tags">
+          <span class="reco-tag">MTS 추천</span>
+          <span class="reco-tag">은행 연계</span>
+          <span class="reco-tag">노후 자산 IR</span>
+        </div>
+      </div>
+
+      <div class="persona-card" style="--persona-color:#5b8def;--persona-bg:rgba(91,141,239,0.06)">
+        <div class="icon-row">
+          <div class="persona-icon">📈</div>
+          <span class="persona-tag">GROWTH · 성장 풀</span>
+        </div>
+        <h4>40대 남성 자산형성기</h4>
+        <p class="summary">레버리지·신상품 흡수율 가장 높은 풀. KODEX 4축 funnel 핵심 통로.</p>
+        <div class="stats-row">
+          <div class="stat-mini"><div class="lab">인원</div><div class="val">6,595명</div></div>
+          <div class="stat-mini"><div class="lab">1인당</div><div class="val">1,588만</div></div>
+          <div class="stat-mini"><div class="lab">AUM 비중</div><div class="val">17.9%</div></div>
+        </div>
+        <div class="reco-label">▣ 추천 상품</div>
+        <div class="reco-tags">
+          <span class="reco-tag">KODEX 레버리지</span>
+          <span class="reco-tag">AI TOP2+</span>
+          <span class="reco-tag">단일종목 LEV</span>
+        </div>
+        <div class="reco-label" style="margin-top:8px">▣ 채널</div>
+        <div class="reco-tags">
+          <span class="reco-tag">유튜브 알고리즘</span>
+          <span class="reco-tag">금융 뉴스레터</span>
+        </div>
+      </div>
+
+      <div class="persona-card" style="--persona-color:#14b8a6;--persona-bg:rgba(20,184,166,0.06)">
+        <div class="icon-row">
+          <div class="persona-icon">🌱</div>
+          <span class="persona-tag">FUTURE · LTV 풀</span>
+        </div>
+        <h4>20대 여성 신규 진입자</h4>
+        <p class="summary">현재 객단가 낮지만 10년 LTV 관점 핵심 풀. 적립식 자동투자로 단가 점진 상승 유도.</p>
+        <div class="stats-row">
+          <div class="stat-mini"><div class="lab">인원</div><div class="val">4,300명</div></div>
+          <div class="stat-mini"><div class="lab">1인당</div><div class="val">185만</div></div>
+          <div class="stat-mini"><div class="lab">AUM 비중</div><div class="val">1.4%</div></div>
+        </div>
+        <div class="reco-label">▣ 추천 상품</div>
+        <div class="reco-tags">
+          <span class="reco-tag">TIGER TOP10</span>
+          <span class="reco-tag">KODEX AI반도체</span>
+          <span class="reco-tag">적립식 자동투자</span>
+        </div>
+        <div class="reco-label" style="margin-top:8px">▣ 채널</div>
+        <div class="reco-tags">
+          <span class="reco-tag">인스타그램</span>
+          <span class="reco-tag">유튜브 숏폼</span>
+          <span class="reco-tag">카카오</span>
+        </div>
+      </div>
+
+      <div class="persona-card" style="--persona-color:#a78bfa;--persona-bg:rgba(167,139,250,0.06)">
+        <div class="icon-row">
+          <div class="persona-icon">🚀</div>
+          <span class="persona-tag">EMERGING · 신규</span>
+        </div>
+        <h4>30대 남성 액티브 입문자</h4>
+        <p class="summary">레버리지·테마 ETF 첫 진입 풀. 향후 10년간 시장의 주류로 성장할 풀.</p>
+        <div class="stats-row">
+          <div class="stat-mini"><div class="lab">인원</div><div class="val">4,596명</div></div>
+          <div class="stat-mini"><div class="lab">1인당</div><div class="val">893만</div></div>
+          <div class="stat-mini"><div class="lab">AUM 비중</div><div class="val">7.0%</div></div>
+        </div>
+        <div class="reco-label">▣ 추천 상품</div>
+        <div class="reco-tags">
+          <span class="reco-tag">KODEX 반도체</span>
+          <span class="reco-tag">AI TOP2+</span>
+          <span class="reco-tag">레버리지 입문</span>
+        </div>
+        <div class="reco-label" style="margin-top:8px">▣ 채널</div>
+        <div class="reco-tags">
+          <span class="reco-tag">유튜브</span>
+          <span class="reco-tag">트위터·X</span>
+          <span class="reco-tag">증권 앱 푸시</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- STRATEGY -->
+<div class="strategy-section" id="strategy">
+  <div class="container">
+    <div class="strategy-tag">◆ STRATEGY · 다음 한 분기 실행 과제</div>
+    <h2>데이터 기반 8대 전략 과제</h2>
+    <p class="sub">위 분석을 바탕으로 ETF 기획팀이 즉시 실행 가능한 8가지 우선순위 과제를 도출했습니다. 신규 데이터(연령·성별 5차원)에서 도출된 세그먼트 전략 3가지가 추가되었습니다.</p>
+
+    <div class="strategy-grid">
+      <div class="strategy-card">
+        <span class="priority high">PRIORITY · HIGH</span>
+        <h3>① KODEX AI반도체TOP2+ 리브랜딩 임팩트 극대화</h3>
+        <p class="opp">5월 명칭 변경되는 <strong>KODEX AI반도체TOP2+</strong>는 KODEX 라인업 중 보유 인원이 가장 두꺼운 상품(6,907명). 데이터상 <strong>30·40대 풀이 균질하게 분포</strong>하여 리브랜딩 메시지 도달률이 가장 큰 카드입니다.</p>
+        <div class="actions">
+          <div class="a-label">▣ 실행 단계</div>
+          <ol>
+            <li>명칭 변경 D-day에 기존 보유자 6,907명 전원 MTS·이메일 알림 발송 ("TOP2+ 컨셉이란 무엇인가" 인포그래픽 동봉)</li>
+            <li>천안·화성·수원 등 기존 KODEX AI반도체 강세 지역 영업 채널에 리브랜딩 IR 자료 우선 배포</li>
+            <li>리브랜딩 후 4주간 신규 매수 인원·AUM 증가율 추적, 전월 대비 +15% 이상을 KPI로 설정</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="strategy-card">
+        <span class="priority high">PRIORITY · HIGH</span>
+        <h3>② KODEX 반도체위클리커버드콜 — 50대+ 인컴 라인 거점화</h3>
+        <p class="opp">5월 신규 출시되는 <strong>KODEX 반도체위클리커버드콜</strong>은 인컴형 상품. 데이터상 <strong>50대 인원 18,332명(전체의 30%)</strong>이 시장 핵심 풀로, 자산 안정화 니즈가 큰 풀이 명확합니다.</p>
+        <div class="actions">
+          <div class="a-label">▣ 실행 단계</div>
+          <ol>
+            <li>KODEX 반도체·KODEX 레버리지 보유자 중 50대+ 세그먼트 추출, "성장→인컴 분산" 메시지로 사전 안내</li>
+            <li>대전 유성구·경남 창원시·충북 청주시 등 1인당 보유금액 평균 이상 지방 거점에 인컴형 IR 자료 별도 배포</li>
+            <li>출시 후 1개월 내 "기존 KODEX 보유자 → 위클리CC 동시 보유" 비율 KPI 20% 이상</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="strategy-card">
+        <span class="priority high">PRIORITY · HIGH</span>
+        <h3>③ 삼성전자 · SK하이닉스 레버리지 — 남성 액티브 풀 정조준</h3>
+        <p class="opp">5월 말 동시 상장하는 <strong>KODEX 삼성전자 레버리지 · KODEX SK하이닉스 레버리지</strong>는 데이터로 입증된 <strong>남성 87% 편향 풀</strong>이 타겟. 화성·수원·이천·평택·청주 IT 벨트 + 40~50대 남성 페르소나가 1차 모객 풀입니다.</p>
+        <div class="actions">
+          <div class="a-label">▣ 실행 단계</div>
+          <ol>
+            <li>KODEX 반도체 보유자 중 화성·수원·이천·평택·청주 + 40~50대 남성 세그먼트 추출, 상장 D-7부터 "단일종목 직접 노출" 메시지 발송</li>
+            <li>마케팅 채널: 남성 트레이딩 유튜브 → 증권 커뮤니티 → MTS 푸시 순 우선순위</li>
+            <li>삼성전자 LEV는 화성·수원(삼성 캠퍼스 인접), SK하이닉스 LEV는 이천·청주(SK 본사 인접) 우선 노출</li>
+            <li>상장 후 1개월 내 두 종목 합산 AUM 100B 돌파 KPI</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="strategy-card">
+        <span class="priority high">PRIORITY · HIGH · NEW</span>
+        <h3>④ VVIP 풀 154명 — 1인 1.6억급 별도 트랙</h3>
+        <p class="opp"><strong>60대 이상 × KODEX 레버리지 보유자 154명</strong>이 1인당 평균 <strong>1.6억원</strong>을 보유. 시장 전체 평균(956만원)의 17배. 이 풀의 행동 한 번이 AUM 안정성을 좌우하므로 별도 retention 트랙 필수.</p>
+        <div class="actions">
+          <div class="a-label">▣ 실행 단계</div>
+          <ol>
+            <li>VVIP 154명 전원 대상 5월 말 단일종목 LEV 상장 사전 1:1 IR — D-7부터 가동</li>
+            <li>증권사 VIP 팀과 공동 RM(Relationship Manager) 프로그램 검토 — PB 채널 매칭</li>
+            <li>VVIP 풀 환매 모니터링 KPI 신설 — 분기당 5% 초과 시 즉시 retention 트리거</li>
+            <li>5/22 단일종목 LEV 상장 시 VVIP 우선 사전 매수 권한 검토</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="strategy-card">
+        <span class="priority med">PRIORITY · MEDIUM · NEW</span>
+        <h3>⑤ 20대 여성 4,300명 — 적립식 자동투자 LTV 캠페인</h3>
+        <p class="opp">시장 최대 신규 유입 풀이지만 <strong>1인당 185만원에 정체</strong>. 단기 AUM 임팩트는 작지만 <strong>10년 후 30·40대로 성장하며 객단가 자연 상승</strong>하는 LTV(Life Time Value) 풀입니다. 지금 KODEX 브랜드 노출 확보가 향후 충성 보유자 확보로 직결됩니다.</p>
+        <div class="actions">
+          <div class="a-label">▣ 실행 단계</div>
+          <ol>
+            <li>"월 10만원 KODEX 적립식" 캠페인 — TIGER TOP10에 빼앗기지 않도록 선제 출시</li>
+            <li>인스타그램·유튜브 숏폼 광고 — 톤은 "투자 입문" 친근한 컨셉, ETF 용어 최소화</li>
+            <li>3년 후 이 풀의 30대 진입 시 객단가 평균 300만원 이상 증가 KPI 추적</li>
+            <li>광역 분포: 서울·경기 70% 집중 → 디지털 광고 효율 극대화 가능</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="strategy-card">
+        <span class="priority med">PRIORITY · MEDIUM · NEW</span>
+        <h3>⑥ 50대 여성 10,873명 — 인원 최대 풀의 객단가 끌어올리기</h3>
+        <p class="opp">시장 단일 최대 인원 세그먼트(50대 여성). 그러나 1인당 <strong>653만원으로 평균 미만에서 정체</strong>. 50대 남성(1,833만원) 대비 1/3 수준. 이 풀의 객단가만 평균 수준으로 올려도 시장 임팩트 매우 큼.</p>
+        <div class="actions">
+          <div class="a-label">▣ 실행 단계</div>
+          <ol>
+            <li>50대 여성 풀 대상 "노후 자산 + 인컴" 메시지 — KODEX 위클리CC 1순위 노출</li>
+            <li>광주·대구 등 50대 여성 비중 큰 광역 별도 IR 트랙</li>
+            <li>적립식 → 일시납 전환 캠페인으로 평균 단가 +50% 이상 KPI</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="strategy-card">
+        <span class="priority med">PRIORITY · MEDIUM</span>
+        <h3>⑦ KODEX 4축 funnel — 라이프사이클 전 구간 커버</h3>
+        <p class="opp">5월 라인업 정비 후 KODEX는 <strong>"성장(레버리지) → 핵심(반도체·AI TOP2+) → 인컴(위클리CC) → 단일종목(삼전·하이닉스 LEV)"</strong> 4축 구조 완성. 새 데이터로 확인된 연령별 페르소나를 funnel에 매핑하면 자연 이동 경로가 명확해집니다.</p>
+        <div class="actions">
+          <div class="a-label">▣ 실행 단계</div>
+          <ol>
+            <li>4축 funnel × 연령 매핑 비주얼 통합 인포그래픽 제작 (20대=AI반도체 → 50대=레버리지·단일종목 → 60대=위클리CC)</li>
+            <li>MTS 추천 모듈 연동 — 보유자 연령·기존 종목별 다음 상품 자동 추천</li>
+            <li>4축 모두 보유 고객에게 "KODEX 컬렉터" 로열티 프로그램 검토</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="strategy-card">
+        <span class="priority low">PRIORITY · LOW (LONG-TERM)</span>
+        <h3>⑧ 비수도권 디지털 풀퍼널 채널 구축</h3>
+        <p class="opp">제주·강원·전남 합산이 전국의 <strong>약 2.4%</strong>. 오프라인 영업으로는 비용효율 확보 어려움. <strong>MTS 푸시·유튜브·네이버 타겟 광고</strong>를 활용한 디지털 풀퍼널이 현실적입니다.</p>
+        <div class="actions">
+          <div class="a-label">▣ 실행 단계</div>
+          <ol>
+            <li>지방 광역 거주자 대상 MTS 내 ETF 메뉴 노출 우선순위 조정 — 위클리CC 신상품 첫 화면 노출</li>
+            <li>지역 × 연령별 인구통계 매핑(§19)에 맞춘 디지털 광고 크리에이티브 분리</li>
+            <li>1년 후 지방 광역 합산 AUM 비중 +50% 돌파 중기 KPI</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <h4>SAM ETF Intelligence</h4>
+      <p>삼성자산운용 ETF 기획팀의 내부 분석 도구. 전국 시·도·시·군·구 단위 데이터 기반의 정밀 시장 분석 및 실행 전략 제시.</p>
+    </div>
+    <div class="footer-section">
+      <h5>SECTIONS</h5>
+      <ul>
+        <li>§01-04 종목 · 광역 · 시·구</li>
+        <li>§05-07 산점도 · 1인당 · 수도권</li>
+        <li>§08-10 분포 · 산업 · 집중도</li>
+        <li>§11-13 편차 · 지도 · 페어</li>
+        <li>§14 AGE × SEX (NEW)</li>
+        <li>§15-16 종목별 연령·성별 (NEW)</li>
+        <li>§17 VVIP 풀 (NEW)</li>
+        <li>§18 20대 여성 (NEW)</li>
+        <li>§19 시·도 × 연령 (NEW)</li>
+        <li>§20 라이프사이클 (NEW)</li>
+        <li>§21 세그먼트 트리맵 (NEW)</li>
+        <li>§22 선호도 인덱스 (NEW)</li>
+        <li>§23 페르소나 카드 (NEW)</li>
+      </ul>
+    </div>
+    <div class="footer-section">
+      <h5>METADATA</h5>
+      <ul>
+        <li>VERSION · 6.1</li>
+        <li>DATE · 2026.05.06</li>
+        <li>OWNER · ETF PLANNING</li>
+        <li>STATUS · CONFIDENTIAL</li>
+        <li>DATA · 5차원 (종목·시도·시구·연령·성별)</li>
+        <li>DEVICE · 데스크톱·모바일 반응형</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-meta">
+    <span>SOURCE: 삼성자산운용 내부 집계 · 6개 반도체 ETF 통합 데이터</span>
+    <span>CONFIDENTIAL · DO NOT DISTRIBUTE</span>
+  </div>
+</footer>
+
+<script>// ═══════ INIT GUARD ═══════
+function initCharts() {
+  if (typeof Chart === 'undefined') {
+    console.error('Chart.js failed to load. Retrying in 500ms...');
+    setTimeout(initCharts, 500);
+    return;
+  }
+  try {
+
+// ═══════ THEME SYSTEM ═══════
+const THEME_KEY = 'sam-etf-theme';
+function getTheme() { return localStorage.getItem(THEME_KEY) || 'dark'; }
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem(THEME_KEY, theme);
+  document.querySelectorAll('#themeToggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.theme === theme);
+  });
+  if (window._charts) {
+    const colors = getThemeColors();
+    Chart.defaults.color = colors.textMuted;
+    window._charts.forEach(c => {
+      if (c.options.scales) {
+        Object.values(c.options.scales).forEach(s => {
+          if (s.ticks) s.ticks.color = colors.text2;
+          if (s.grid) s.grid.color = colors.grid;
+          if (s.title) s.title.color = colors.textMuted;
+        });
+      }
+      c.data.datasets.forEach(ds => {
+        if (ds.borderColor === '#11151f' || ds.borderColor === '#ffffff') ds.borderColor = colors.surface;
+      });
+      c.update('none');
+    });
+  }
+}
+function getThemeColors() {
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+  return isDark
+    ? { textMuted:'#6b7894', text2:'#a1adc7', grid:'rgba(31,41,64,0.5)', surface:'#11151f', tooltipBg:'rgba(7,9,15,0.95)', tooltipBody:'#a1adc7' }
+    : { textMuted:'#64748b', text2:'#475569', grid:'rgba(203,213,225,0.5)', surface:'#ffffff', tooltipBg:'rgba(15,23,42,0.95)', tooltipBody:'#cbd5e1' };
+}
+window._charts = [];
+applyTheme(getTheme());
+document.querySelectorAll('#themeToggle button').forEach(btn => {
+  btn.addEventListener('click', () => applyTheme(btn.dataset.theme));
+});
+
+// ═══════ DATA (단위: 백만원 amt, 명 cnt) ═══════
+const PRODUCTS = [
+  { key:'p0', name:'KODEX 반도체',          aum:147554, cnt:11222, color:'#5b8def' },
+  { key:'p1', name:'KODEX 레버리지',        aum:75127,  cnt:1117,  color:'#38bdf8' },
+  { key:'p2', name:'KODEX AI반도체 → TOP2+', aum:41885,  cnt:6907,  color:'#14b8a6' },
+  { key:'p3', name:'TIGER 반도체',          aum:6455,   cnt:489,   color:'#fbbf24' },
+  { key:'p4', name:'TIGER TOP10',          aum:267628, cnt:40428, color:'#fb923c' },
+  { key:'p5', name:'TIGER TOP10 레버리지',  aum:47573,  cnt:1172,  color:'#f43f5e' },
+];
+const TOTAL_AUM = 586222;
+const TOTAL_CNT = 61335;
+
+const REGIONS = [
+  { name:"서울", amt:241152, cnt:16485 }, { name:"경기", amt:200271, cnt:21065 },
+  { name:"경남", amt:18281, cnt:3088 }, { name:"대구", amt:15573, cnt:1985 },
+  { name:"대전", amt:12922, cnt:1818 }, { name:"인천", amt:11841, cnt:2523 },
+  { name:"충북", amt:11802, cnt:1400 }, { name:"부산", amt:11001, cnt:1952 },
+  { name:"충남", amt:10898, cnt:1702 }, { name:"광주", amt:10796, cnt:1833 },
+  { name:"경북", amt:8802, cnt:1547 }, { name:"세종", amt:8236, cnt:1103 },
+  { name:"전북", amt:7344, cnt:1317 }, { name:"강원", amt:5583, cnt:1027 },
+  { name:"전남", amt:4778, cnt:928 }, { name:"울산", amt:3663, cnt:807 },
+  { name:"제주", amt:3278, cnt:755 },
+];
+
+const REGION_BY_PROD = {
+  "서울":[66547,42791,15852,1356,91249,23357],"경기":[49958,23983,16192,4718,87264,18156],
+  "경남":[4913,538,1336,31,10545,918],"대구":[1729,3612,629,107,8470,1025],
+  "대전":[4117,292,799,0,7460,254],"인천":[3127,171,657,0,7725,161],
+  "충북":[3691,2424,717,150,4821,0],"부산":[2157,0,200,0,8644,0],
+  "충남":[1840,661,788,0,6423,1186],"광주":[2448,0,1028,0,7320,0],
+  "경북":[1867,0,664,0,6271,0],"세종":[1345,363,698,93,4836,901],
+  "전북":[1047,292,510,0,4201,1294],"강원":[1316,0,700,0,3567,0],
+  "전남":[320,0,301,0,4157,0],"울산":[451,0,331,0,2882,0],
+  "제주":[680,0,484,0,1793,321],
+};
+
+const CITIES = [
+  {nm:"강남구",rg:"서울",amt:64519,cnt:1643,prods:[15102,26044,4048,684,12572,6069]},
+  {nm:"성남시",rg:"경기",amt:36989,cnt:2285,prods:[7372,7421,2761,856,12980,5599]},
+  {nm:"서초구",rg:"서울",amt:35275,cnt:1195,prods:[8863,1352,1325,301,12760,10674]},
+  {nm:"수원시",rg:"경기",amt:30122,cnt:2943,prods:[8033,3298,3171,824,12480,2316]},
+  {nm:"용인시",rg:"경기",amt:29067,cnt:2720,prods:[8384,3025,2990,528,10459,3681]},
+  {nm:"화성시",rg:"경기",amt:24578,cnt:2346,prods:[6473,2750,1521,1375,9786,2673]},
+  {nm:"송파구",rg:"서울",amt:23976,cnt:1700,prods:[5445,4474,1398,277,9163,3219]},
+  {nm:"고양시",rg:"경기",amt:20710,cnt:1818,prods:[5888,5931,1075,1135,4950,1732]},
+  {nm:"용산구",rg:"서울",amt:15130,cnt:424,prods:[4187,0,581,0,10362,0]},
+  {nm:"강서구",rg:"서울",amt:13396,cnt:987,prods:[4360,3785,881,0,3484,886]},
+  {nm:"마포구",rg:"서울",amt:11344,cnt:858,prods:[4425,1873,1114,18,3765,150]},
+  {nm:"청주시",rg:"충북",amt:11214,cnt:1257,prods:[3691,2424,717,150,4233,0]},
+  {nm:"양천구",rg:"서울",amt:11212,cnt:834,prods:[2969,2473,1586,0,3821,362]},
+  {nm:"영등포구",rg:"서울",amt:10455,cnt:837,prods:[2655,2155,777,37,4050,780]},
+  {nm:"창원시",rg:"경남",amt:9605,cnt:1470,prods:[2361,439,838,31,5019,918]},
+  {nm:"수성구",rg:"대구",amt:9194,cnt:691,prods:[1443,3450,269,107,2900,1025]},
+  {nm:"안양시",rg:"경기",amt:8516,cnt:1063,prods:[1630,578,922,0,4245,1140]},
+  {nm:"강동구",rg:"서울",amt:7404,cnt:922,prods:[1797,0,719,0,3779,1109]},
+  {nm:"천안시",rg:"충남",amt:7044,cnt:952,prods:[1003,661,568,0,3625,1186]},
+  {nm:"부천시",rg:"경기",amt:6987,cnt:840,prods:[2051,282,752,0,3282,621]},
+  {nm:"은평구",rg:"서울",amt:6344,cnt:654,prods:[2415,636,453,0,2840,0]},
+  {nm:"전주시",rg:"전북",amt:6305,cnt:1016,prods:[1003,292,498,0,3217,1294]},
+  {nm:"서구(대전)",rg:"대전",amt:6159,cnt:717,prods:[1798,182,451,0,3474,254]},
+  {nm:"남양주시",rg:"경기",amt:5936,cnt:916,prods:[1441,388,770,0,3070,266]},
+  {nm:"하남시",rg:"경기",amt:5619,cnt:466,prods:[1790,0,237,0,3592,0]},
+  {nm:"유성구",rg:"대전",amt:5103,cnt:747,prods:[1819,109,329,0,2846,0]},
+  {nm:"성북구",rg:"서울",amt:4855,cnt:570,prods:[1728,0,82,0,3045,0]},
+  {nm:"서대문구",rg:"서울",amt:4653,cnt:554,prods:[1531,0,343,0,2779,0]},
+  {nm:"해운대구",rg:"부산",amt:4046,cnt:417,prods:[986,0,117,0,2942,0]},
+  {nm:"성동구",rg:"서울",amt:4005,cnt:477,prods:[1196,0,385,0,2423,0]},
+  {nm:"파주시",rg:"경기",amt:4000,cnt:598,prods:[951,0,294,0,2756,0]},
+  {nm:"동작구",rg:"서울",amt:3980,cnt:629,prods:[1301,0,199,0,2480,0]},
+  {nm:"김포시",rg:"경기",amt:3965,cnt:636,prods:[1631,310,374,0,1523,128]},
+  {nm:"광진구",rg:"서울",amt:3891,cnt:585,prods:[1762,0,488,0,1642,0]},
+  {nm:"노원구",rg:"서울",amt:3802,cnt:739,prods:[1187,0,289,0,2220,107]},
+  {nm:"서구(인천)",rg:"인천",amt:3473,cnt:589,prods:[910,171,125,0,2267,0]},
+  {nm:"포항시",rg:"경북",amt:3446,cnt:552,prods:[1144,0,331,0,1971,0]},
+  {nm:"관악구",rg:"서울",amt:3427,cnt:651,prods:[1263,0,306,39,1819,0]},
+  {nm:"진주시",rg:"경남",amt:3336,cnt:540,prods:[1611,0,184,0,1540,0]},
+  {nm:"구로구",rg:"서울",amt:3228,cnt:465,prods:[1027,0,379,0,1822,0]},
+  {nm:"북구(광주)",rg:"광주",amt:3161,cnt:589,prods:[941,0,457,0,1763,0]},
+  {nm:"구미시",rg:"경북",amt:3138,cnt:487,prods:[658,0,315,0,2165,0]},
+  {nm:"동대문구",rg:"서울",amt:3109,cnt:473,prods:[840,0,254,0,2015,0]},
+  {nm:"김해시",rg:"경남",amt:2944,cnt:598,prods:[442,99,252,0,2152,0]},
+  {nm:"제주시",rg:"제주",amt:2930,cnt:657,prods:[618,0,484,0,1507,321]},
+  {nm:"연수구",rg:"인천",amt:2756,cnt:489,prods:[874,0,148,0,1572,161]},
+  {nm:"광명시",rg:"경기",amt:2676,cnt:406,prods:[1129,0,323,0,1225,0]},
+  {nm:"원주시",rg:"강원",amt:2583,cnt:440,prods:[563,0,409,0,1611,0]},
+  {nm:"남구(광주)",rg:"광주",amt:2530,cnt:266,prods:[633,0,0,0,1897,0]},
+  {nm:"안산시",rg:"경기",amt:2503,cnt:557,prods:[832,0,255,0,1417,0]},
+  {nm:"평택시",rg:"경기",amt:2451,cnt:490,prods:[499,0,237,0,1715,0]},
+  {nm:"달서구",rg:"대구",amt:2409,cnt:493,prods:[145,162,267,0,1835,0]},
+  {nm:"광산구",rg:"광주",amt:2354,cnt:521,prods:[387,0,481,0,1487,0]},
+  {nm:"춘천시",rg:"강원",amt:2341,cnt:409,prods:[702,0,291,0,1349,0]},
+  {nm:"종로구",rg:"서울",amt:2291,cnt:187,prods:[1421,0,0,0,870,0]},
+  {nm:"아산시",rg:"충남",amt:2284,cnt:409,prods:[800,0,191,0,1293,0]},
+  {nm:"부평구",rg:"인천",amt:2143,cnt:444,prods:[778,0,187,0,1177,0]},
+  {nm:"서구(광주)",rg:"광주",amt:2071,cnt:355,prods:[378,0,90,0,1603,0]},
+  {nm:"군포시",rg:"경기",amt:2017,cnt:344,prods:[342,0,130,0,1545,0]},
+  {nm:"남구(울산)",rg:"울산",amt:1961,cnt:342,prods:[295,0,257,0,1409,0]},
+  {nm:"여수시",rg:"전남",amt:1876,cnt:267,prods:[112,0,187,0,1577,0]},
+  {nm:"이천시",rg:"경기",amt:1775,cnt:227,prods:[221,0,0,0,1554,0]},
+  {nm:"시흥시",rg:"경기",amt:1708,cnt:436,prods:[477,0,42,0,1188,0]},
+  {nm:"의정부시",rg:"경기",amt:1705,cnt:455,prods:[195,0,180,0,1329,0]},
+  {nm:"양산시",rg:"경남",amt:1596,cnt:282,prods:[372,0,63,0,1161,0]},
+  {nm:"중랑구",rg:"서울",amt:1576,cnt:327,prods:[325,0,36,0,1215,0]},
+  {nm:"도봉구",rg:"서울",amt:1560,cnt:299,prods:[465,0,134,0,960,0]},
+  {nm:"광주시",rg:"경기",amt:1559,cnt:287,prods:[210,0,57,0,1292,0]},
+  {nm:"북구(대구)",rg:"대구",amt:1551,cnt:349,prods:[116,0,83,0,1352,0]},
+  {nm:"순천시",rg:"전남",amt:1488,cnt:343,prods:[208,0,87,0,1193,0]},
+  {nm:"남동구",rg:"인천",amt:1478,cnt:442,prods:[378,0,197,0,903,0]},
+  {nm:"과천시",rg:"경기",amt:1382,cnt:155,prods:[0,0,0,0,1382,0]},
+  {nm:"북구(부산)",rg:"부산",amt:1275,cnt:218,prods:[528,0,32,0,715,0]},
+  {nm:"구리시",rg:"경기",amt:1256,cnt:239,prods:[217,0,11,0,1027,0]},
+  {nm:"의왕시",rg:"경기",amt:1245,cnt:197,prods:[158,0,36,0,1051,0]},
+  {nm:"양평군",rg:"경기",amt:1189,cnt:78,prods:[34,0,0,0,1155,0]},
+  {nm:"동래구",rg:"부산",amt:1172,cnt:219,prods:[338,0,0,0,834,0]},
+  {nm:"부산진구",rg:"부산",amt:1067,cnt:251,prods:[44,0,0,0,1023,0]},
+];
+
+const REGION_COLORS = {
+  "서울":"#5b8def","경기":"#38bdf8","인천":"#14b8a6","부산":"#fbbf24","대전":"#fb923c",
+  "경남":"#f43f5e","대구":"#8b5cf6","광주":"#ec4899","충남":"#84cc16","충북":"#a78bfa",
+  "전북":"#f472b6","경북":"#34d399","울산":"#fcd34d","전남":"#67e8f9","강원":"#fda4af","제주":"#94a3b8","세종":"#cbd5e1"
+};
+
+const AGE_ORDER = ['20대','30대','40대','50대','60대이상'];
+const AGE_SEX = {
+  "20대": {"남":{amt:6470,cnt:1412},"여":{amt:7950,cnt:4300}},
+  "30대": {"남":{amt:41039,cnt:4596},"여":{amt:22973,cnt:8267}},
+  "40대": {"남":{amt:104734,cnt:6595},"여":{amt:50803,cnt:9206}},
+  "50대": {"남":{amt:136696,cnt:7459},"여":{amt:71021,cnt:10873}},
+  "60대이상": {"남":{amt:96783,cnt:3775},"여":{amt:42160,cnt:3717}},
+};
+
+const PROD_AGE_SEX = {
+  "p0":{"20대":{"남":{amt:1906,cnt:121},"여":{amt:2167,cnt:578}},"30대":{"남":{amt:9547,cnt:962},"여":{amt:6032,cnt:1451}},"40대":{"남":{amt:23937,cnt:1356},"여":{amt:11838,cnt:1678}},"50대":{"남":{amt:33494,cnt:1519},"여":{amt:19866,cnt:1967}},"60대이상":{"남":{amt:25586,cnt:747},"여":{amt:12517,cnt:707}}},
+  "p1":{"20대":{"남":{amt:0,cnt:0},"여":{amt:0,cnt:0}},"30대":{"남":{amt:5611,cnt:110},"여":{amt:578,cnt:12}},"40대":{"남":{amt:18676,cnt:241},"여":{amt:4970,cnt:124}},"50대":{"남":{amt:17485,cnt:262},"여":{amt:4495,cnt:214}},"60대이상":{"남":{amt:17192,cnt:107},"여":{amt:6121,cnt:47}}},
+  "p2":{"20대":{"남":{amt:162,cnt:52},"여":{amt:750,cnt:317}},"30대":{"남":{amt:1853,cnt:364},"여":{amt:1870,cnt:876}},"40대":{"남":{amt:5084,cnt:701},"여":{amt:4312,cnt:1147}},"50대":{"남":{amt:10026,cnt:1036},"여":{amt:6737,cnt:1493}},"60대이상":{"남":{amt:8393,cnt:475},"여":{amt:2576,cnt:380}}},
+  "p3":{"20대":{"남":{amt:0,cnt:0},"여":{amt:0,cnt:0}},"30대":{"남":{amt:509,cnt:42},"여":{amt:334,cnt:102}},"40대":{"남":{amt:1498,cnt:84},"여":{amt:270,cnt:71}},"50대":{"남":{amt:1641,cnt:92},"여":{amt:2202,cnt:98}},"60대이상":{"남":{amt:0,cnt:0},"여":{amt:0,cnt:0}}},
+  "p4":{"20대":{"남":{amt:4402,cnt:1239},"여":{amt:5033,cnt:3405}},"30대":{"남":{amt:18974,cnt:3023},"여":{amt:13962,cnt:5801}},"40대":{"남":{amt:44811,cnt:3923},"여":{amt:27612,cnt:6040}},"50대":{"남":{amt:54773,cnt:4218},"여":{amt:34908,cnt:6952}},"60대이상":{"남":{amt:38760,cnt:2346},"여":{amt:19586,cnt:2548}}},
+  "p5":{"20대":{"남":{amt:0,cnt:0},"여":{amt:0,cnt:0}},"30대":{"남":{amt:4544,cnt:95},"여":{amt:197,cnt:25}},"40대":{"남":{amt:10728,cnt:290},"여":{amt:1802,cnt:146}},"50대":{"남":{amt:19278,cnt:332},"여":{amt:2812,cnt:149}},"60대이상":{"남":{amt:6851,cnt:100},"여":{amt:1360,cnt:35}}},
+};
+
+const SIDO_AGE_SEX = {
+  "서울":{"20대":{"남":{amt:2130,cnt:352},"여":{amt:2874,cnt:1379}},"30대":{"남":{amt:17927,cnt:1365},"여":{amt:8758,cnt:2653}},"40대":{"남":{amt:41195,cnt:1692},"여":{amt:18725,cnt:2373}},"50대":{"남":{amt:52912,cnt:1909},"여":{amt:20036,cnt:2282}},"60대이상":{"남":{amt:49487,cnt:1117},"여":{amt:23399,cnt:1096}}},
+  "경기":{"20대":{"남":{amt:1898,cnt:564},"여":{amt:3191,cnt:1360}},"30대":{"남":{amt:15221,cnt:1708},"여":{amt:8169,cnt:2486}},"40대":{"남":{amt:40622,cnt:2524},"여":{amt:17424,cnt:2977}},"50대":{"남":{amt:47262,cnt:2740},"여":{amt:24446,cnt:3504}},"60대이상":{"남":{amt:29991,cnt:1356},"여":{amt:10648,cnt:1273}}},
+  "경남":{"20대":{"남":{amt:200,cnt:70},"여":{amt:185,cnt:190}},"30대":{"남":{amt:793,cnt:193},"여":{amt:579,cnt:354}},"40대":{"남":{amt:3089,cnt:311},"여":{amt:1557,cnt:512}},"50대":{"남":{amt:4422,cnt:340},"여":{amt:3176,cnt:670}},"60대이상":{"남":{amt:2579,cnt:146},"여":{amt:1520,cnt:198}}},
+  "대구":{"20대":{"남":{amt:153,cnt:47},"여":{amt:111,cnt:124}},"30대":{"남":{amt:594,cnt:115},"여":{amt:386,cnt:218}},"40대":{"남":{amt:1052,cnt:129},"여":{amt:1563,cnt:348}},"50대":{"남":{amt:6220,cnt:272},"여":{amt:3348,cnt:489}},"60대이상":{"남":{amt:1422,cnt:114},"여":{amt:655,cnt:118}}},
+  "대전":{"20대":{"남":{amt:183,cnt:50},"여":{amt:200,cnt:137}},"30대":{"남":{amt:617,cnt:113},"여":{amt:459,cnt:200}},"40대":{"남":{amt:1111,cnt:175},"여":{amt:1374,cnt:271}},"50대":{"남":{amt:2581,cnt:252},"여":{amt:2807,cnt:379}},"60대이상":{"남":{amt:2408,cnt:120},"여":{amt:1164,cnt:106}}},
+  "인천":{"20대":{"남":{amt:132,cnt:49},"여":{amt:294,cnt:233}},"30대":{"남":{amt:842,cnt:185},"여":{amt:934,cnt:510}},"40대":{"남":{amt:2884,cnt:260},"여":{amt:1056,cnt:368}},"50대":{"남":{amt:2704,cnt:261},"여":{amt:1820,cnt:448}},"60대이상":{"남":{amt:622,cnt:89},"여":{amt:553,cnt:120}}},
+  "충북":{"20대":{"남":{amt:1145,cnt:42},"여":{amt:116,cnt:88}},"30대":{"남":{amt:664,cnt:131},"여":{amt:420,cnt:179}},"40대":{"남":{amt:2185,cnt:176},"여":{amt:622,cnt:185}},"50대":{"남":{amt:2229,cnt:151},"여":{amt:1548,cnt:253}},"60대이상":{"남":{amt:2048,cnt:79},"여":{amt:780,cnt:86}}},
+  "부산":{"20대":{"남":{amt:33,cnt:21},"여":{amt:110,cnt:88}},"30대":{"남":{amt:663,cnt:94},"여":{amt:461,cnt:347}},"40대":{"남":{amt:1598,cnt:159},"여":{amt:958,cnt:344}},"50대":{"남":{amt:3222,cnt:214},"여":{amt:2245,cnt:445}},"60대이상":{"남":{amt:1093,cnt:125},"여":{amt:617,cnt:115}}},
+  "충남":{"20대":{"남":{amt:73,cnt:35},"여":{amt:136,cnt:104}},"30대":{"남":{amt:971,cnt:145},"여":{amt:537,cnt:188}},"40대":{"남":{amt:3299,cnt:250},"여":{amt:911,cnt:269}},"50대":{"남":{amt:2756,cnt:211},"여":{amt:1461,cnt:339}},"60대이상":{"남":{amt:398,cnt:72},"여":{amt:350,cnt:76}}},
+  "광주":{"20대":{"남":{amt:153,cnt:42},"여":{amt:217,cnt:150}},"30대":{"남":{amt:230,cnt:72},"여":{amt:567,cnt:220}},"40대":{"남":{amt:1151,cnt:158},"여":{amt:1811,cnt:288}},"50대":{"남":{amt:1913,cnt:211},"여":{amt:2168,cnt:408}},"60대이상":{"남":{amt:2025,cnt:134},"여":{amt:550,cnt:140}}},
+  "경북":{"20대":{"남":{amt:120,cnt:42},"여":{amt:55,cnt:82}},"30대":{"남":{amt:460,cnt:85},"여":{amt:338,cnt:199}},"40대":{"남":{amt:1276,cnt:141},"여":{amt:850,cnt:221}},"50대":{"남":{amt:2137,cnt:179},"여":{amt:2042,cnt:419}},"60대이상":{"남":{amt:1096,cnt:91},"여":{amt:411,cnt:75}}},
+  "세종":{"20대":{"남":{amt:60,cnt:26},"여":{amt:41,cnt:50}},"30대":{"남":{amt:831,cnt:101},"여":{amt:163,cnt:102}},"40대":{"남":{amt:1501,cnt:144},"여":{amt:871,cnt:206}},"50대":{"남":{amt:2241,cnt:158},"여":{amt:762,cnt:152}},"60대이상":{"남":{amt:1366,cnt:61},"여":{amt:308,cnt:48}}},
+  "전북":{"20대":{"남":{amt:45,cnt:21},"여":{amt:203,cnt:133}},"30대":{"남":{amt:269,cnt:50},"여":{amt:290,cnt:163}},"40대":{"남":{amt:1186,cnt:114},"여":{amt:755,cnt:239}},"50대":{"남":{amt:2275,cnt:141},"여":{amt:1348,cnt:276}},"60대이상":{"남":{amt:549,cnt:80},"여":{amt:412,cnt:77}}},
+  "강원":{"20대":{"남":{amt:44,cnt:11},"여":{amt:74,cnt:53}},"30대":{"남":{amt:229,cnt:70},"여":{amt:225,cnt:117}},"40대":{"남":{amt:666,cnt:76},"여":{amt:604,cnt:118}},"50대":{"남":{amt:1152,cnt:148},"여":{amt:1303,cnt:221}},"60대이상":{"남":{amt:893,cnt:102},"여":{amt:387,cnt:100}}},
+  "전남":{"20대":{"남":{amt:22,cnt:14},"여":{amt:63,cnt:60}},"30대":{"남":{amt:346,cnt:60},"여":{amt:274,cnt:114}},"40대":{"남":{amt:784,cnt:110},"여":{amt:751,cnt:183}},"50대":{"남":{amt:945,cnt:87},"여":{amt:917,cnt:216}},"60대이상":{"남":{amt:529,cnt:45},"여":{amt:123,cnt:29}}},
+  "울산":{"20대":{"남":{amt:17,cnt:10},"여":{amt:58,cnt:41}},"30대":{"남":{amt:222,cnt:51},"여":{amt:245,cnt:111}},"40대":{"남":{amt:593,cnt:92},"여":{amt:524,cnt:177}},"50대":{"남":{amt:917,cnt:89},"여":{amt:873,cnt:192}},"60대이상":{"남":{amt:102,cnt:19},"여":{amt:110,cnt:25}}},
+  "제주":{"20대":{"남":{amt:62,cnt:16},"여":{amt:21,cnt:28}},"30대":{"남":{amt:162,cnt:58},"여":{amt:169,cnt:106}},"40대":{"남":{amt:542,cnt:84},"여":{amt:447,cnt:127}},"50대":{"남":{amt:806,cnt:96},"여":{amt:722,cnt:180}},"60대이상":{"남":{amt:176,cnt:25},"여":{amt:171,cnt:35}}},
+};
+
+// ═══════ CHART DEFAULTS ═══════
+const _initColors = getThemeColors();
+Chart.defaults.color = _initColors.textMuted;
+Chart.defaults.font.family = "'IBM Plex Sans KR', sans-serif";
+Chart.defaults.font.size = 11;
+function buildTooltipBase() {
+  const c = getThemeColors();
+  return { backgroundColor:c.tooltipBg, borderColor:'#2c3a5a', borderWidth:1, padding:12, titleColor:'#fff', titleFont:{size:12,weight:'600'}, bodyColor:c.tooltipBody, bodyFont:{size:11,family:"'JetBrains Mono', monospace"}, cornerRadius:6, displayColors:true, boxPadding:4 };
+}
+const tooltipBase = buildTooltipBase();
+const gridLight = { color:_initColors.grid, drawBorder:false };
+const gridNone = { display:false };
+
+// ═══════ § 1. DONUT + TABLE ═══════
+const _donut = new Chart(document.getElementById('donut'), {
+  type:'doughnut',
+  data:{ labels:PRODUCTS.map(p=>p.name), datasets:[{ data:PRODUCTS.map(p=>p.aum), backgroundColor:PRODUCTS.map(p=>p.color), borderColor:_initColors.surface, borderWidth:3, hoverOffset:8 }] },
+  options:{ responsive:true, maintainAspectRatio:false, cutout:'62%',
+    plugins:{ legend:{ position:'bottom', labels:{ padding:14, boxWidth:10, boxHeight:10, font:{size:11} } },
+      tooltip:{...tooltipBase, callbacks:{ label:ctx=>{const v=ctx.parsed; return `  ${v.toLocaleString()} M  ·  ${(v/TOTAL_AUM*100).toFixed(1)}%`;}}}}}
+});
+window._charts.push(_donut);
+
+const prodSorted = [...PRODUCTS].sort((a,b)=>b.aum-a.aum);
+document.getElementById('prodTable').innerHTML = prodSorted.map((p,i)=>{
+  const perCap = Math.round(p.aum/p.cnt*100);
+  return `<tr><td class="rank">${String(i+1).padStart(2,'0')}</td><td><span class="tag" style="background:${p.color}22;color:${p.color}">${p.name}</span></td><td class="num">${(p.aum/1000).toFixed(1)}</td><td class="num">${p.cnt.toLocaleString()}</td><td class="num">${perCap.toLocaleString()}</td></tr>`;
+}).join('');
+
+// ═══════ § 2. REGIONS ═══════
+const regSorted = [...REGIONS].sort((a,b)=>b.amt-a.amt);
+const _regionAmt = new Chart(document.getElementById('regionAmt'), {
+  type:'bar',
+  data:{ labels:regSorted.map(r=>r.name), datasets:[{ label:'AUM', data:regSorted.map(r=>r.amt), backgroundColor:regSorted.map((r,i)=>`rgba(91,141,239,${Math.max(1-i*0.04,0.25)})`), borderRadius:4 }] },
+  options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:false},
+      tooltip:{...tooltipBase, callbacks:{ label:ctx=>{const r=regSorted[ctx.dataIndex]; return [`  AUM: ${r.amt.toLocaleString()} M`, `  점유율: ${(r.amt/TOTAL_AUM*100).toFixed(2)}%`, `  인원: ${r.cnt.toLocaleString()}명`];}}}},
+    scales:{ x:{grid:gridLight, ticks:{callback:v=>(v/1000).toFixed(0)+'B'}}, y:{grid:gridNone, ticks:{color:'#a1adc7',font:{size:11}}} }}
+});
+
+const NAT_PER_CAP_MAN = Math.round(TOTAL_AUM/TOTAL_CNT*100);
+const regPerCap = REGIONS.map(r=>({...r, perCap:Math.round(r.amt/r.cnt*100)})).sort((a,b)=>b.perCap-a.perCap);
+const _regionPerCap = new Chart(document.getElementById('regionPerCap'), {
+  type:'bar',
+  data:{ labels:regPerCap.map(r=>r.name), datasets:[{ data:regPerCap.map(r=>r.perCap), backgroundColor:regPerCap.map(r=>r.perCap>NAT_PER_CAP_MAN?'#fbbf24':'rgba(91,141,239,0.55)'), borderRadius:4 }] },
+  options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:false},
+      tooltip:{...tooltipBase, callbacks:{ label:ctx=>`  1인 평균: ${ctx.parsed.x.toLocaleString()}만원`}}},
+    scales:{ x:{grid:gridLight, ticks:{callback:v=>v.toLocaleString()}}, y:{grid:gridNone, ticks:{color:'#a1adc7',font:{size:11}}} }}
+});
+
+// ═══════ § 3. HEATMAP ═══════
+const heatRegions = Object.keys(REGION_BY_PROD).sort((a,b)=>{
+  const ra = REGIONS.find(r=>r.name===a), rb = REGIONS.find(r=>r.name===b);
+  return (rb?rb.amt:0)-(ra?ra.amt:0);
+});
+const prodMax = PRODUCTS.map((_,pi)=>Math.max(...heatRegions.map(rn=>REGION_BY_PROD[rn][pi])));
+let heatHTML = '<div class="heatmap"><div class="heat-h"></div>';
+PRODUCTS.forEach(p=>{ heatHTML += `<div class="heat-h">${p.name}</div>`; });
+heatRegions.forEach(rn=>{
+  heatHTML += `<div class="heat-h row">${rn}</div>`;
+  PRODUCTS.forEach((p,pi)=>{
+    const v = REGION_BY_PROD[rn][pi];
+    const ratio = prodMax[pi]>0 ? v/prodMax[pi] : 0;
+    let bg, color;
+    if (v===0) { bg='var(--surface3)'; color='var(--text-dim)'; }
+    else { bg = p.color + Math.round(ratio*200+30).toString(16).padStart(2,'0'); color = ratio>0.5?'#fff':'#ffffffcc'; }
+    const display = v>=1000 ? (v/1000).toFixed(0)+'k' : v;
+    heatHTML += `<div class="heat-cell" style="background:${bg};color:${color}" title="${rn} · ${p.name}: ${v.toLocaleString()}M">${v===0?'—':display}</div>`;
+  });
+});
+heatHTML += '</div>';
+document.getElementById('heatmap').innerHTML = heatHTML;
+
+// ═══════ § 4. CITY STACK ═══════
+let cityStackChart = null;
+function renderCityStack(n){
+  if (cityStackChart) {
+    const idx = window._charts.indexOf(cityStackChart);
+    if (idx >= 0) window._charts.splice(idx, 1);
+    cityStackChart.destroy();
+  }
+  const sorted = [...CITIES].sort((a,b)=>b.amt-a.amt).slice(0,n);
+  const datasets = PRODUCTS.map((p,pi)=>({ label:p.name, data:sorted.map(c=>c.prods[pi]), backgroundColor:p.color, borderRadius:2 }));
+  cityStackChart = new Chart(document.getElementById('cityStack'), {
+    type:'bar',
+    data:{ labels:sorted.map(c=>`${c.nm} (${c.rg})`), datasets },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{position:'bottom', labels:{boxWidth:10, padding:12, font:{size:10}}},
+        tooltip:{...tooltipBase, callbacks:{ label:ctx=>`  ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()} M`}}},
+      scales:{ x:{stacked:true, grid:gridNone, ticks:{color:'#a1adc7',font:{size:10}, maxRotation:45}},
+        y:{stacked:true, grid:gridLight, ticks:{callback:v=>(v/1000).toFixed(0)+'B'}} }}
+  });
+  window._charts.push(cityStackChart);
+}
+renderCityStack(10);
+document.querySelectorAll('#topNFilter .pill').forEach(pill=>{
+  pill.addEventListener('click', ()=>{
+    document.querySelectorAll('#topNFilter .pill').forEach(p=>p.classList.remove('active'));
+    pill.classList.add('active');
+    const n = parseInt(pill.dataset.n);
+    document.getElementById('topNLabel').textContent = `TOP ${n}`;
+    renderCityStack(n);
+  });
+});
+
+// ═══════ § 5. SCATTER ═══════
+const regionGroups = [...new Set(CITIES.map(c=>c.rg))];
+const scatterDS = regionGroups.map(rg=>({
+  label:rg,
+  data:CITIES.filter(c=>c.rg===rg).map(c=>({ x:c.cnt, y:c.amt, r:Math.max(4,Math.min(20,Math.round(c.amt/c.cnt/20))), nm:c.nm })),
+  backgroundColor:(REGION_COLORS[rg]||'#64748b')+'b0',
+  borderColor:REGION_COLORS[rg]||'#64748b', borderWidth:1
+}));
+const _scatter = new Chart(document.getElementById('scatter'), {
+  type:'bubble', data:{datasets:scatterDS},
+  options:{ responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:false},
+      tooltip:{...tooltipBase, callbacks:{ label:ctx=>{const d=ctx.raw; return [`  ${d.nm} (${ctx.dataset.label})`, `  인원: ${d.x.toLocaleString()}명`, `  AUM: ${d.y.toLocaleString()}M`, `  1인당: ${Math.round(d.y/d.x*100).toLocaleString()}만원`];}}}},
+    scales:{ x:{grid:gridLight, title:{display:true, text:'보유 인원 수 (명)', color:'#6b7894'}, ticks:{callback:v=>v.toLocaleString()}},
+      y:{grid:gridLight, title:{display:true, text:'AUM (백만원)', color:'#6b7894'}, ticks:{callback:v=>(v/1000).toFixed(0)+'B'}} }}
+});
+document.getElementById('scatterCount').textContent = `${CITIES.length} 개 시·구 PLOT`;
+const scatterLeg = document.getElementById('scatterLegend');
+regionGroups.forEach(rg=>{
+  scatterLeg.innerHTML += `<span style="display:inline-flex;align-items:center;gap:6px;margin-right:10px;font-size:11px;color:var(--text-2)"><span style="width:8px;height:8px;border-radius:50%;background:${REGION_COLORS[rg]||'#64748b'}"></span>${rg}</span>`;
+});
+
+// ═══════ § 6. PER-CAPITA TOP/BOT ═══════
+const perCapData = CITIES.filter(c=>c.cnt>=30).map(c=>({...c, perCap:Math.round(c.amt/c.cnt*100)}));
+const top15 = [...perCapData].sort((a,b)=>b.perCap-a.perCap).slice(0,15);
+const bot15 = [...perCapData].sort((a,b)=>a.perCap-b.perCap).slice(0,15);
+const maxPC = top15[0].perCap;
+document.getElementById('topPerCap').innerHTML = top15.map((d,i)=>`
+  <tr><td class="rank">${String(i+1).padStart(2,'0')}</td><td>${d.nm}</td>
+  <td><span class="tag" style="background:${(REGION_COLORS[d.rg]||'#64748b')}22;color:${REGION_COLORS[d.rg]||'#64748b'}">${d.rg}</span></td>
+  <td class="num">${d.perCap.toLocaleString()}</td>
+  <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:${(d.perCap/maxPC*100).toFixed(0)}%;background:linear-gradient(90deg,#fbbf24,#fb923c)"></div></div></td></tr>`).join('');
+document.getElementById('botPerCap').innerHTML = bot15.map((d,i)=>`
+  <tr><td class="rank">${String(i+1).padStart(2,'0')}</td><td>${d.nm}</td>
+  <td><span class="tag" style="background:${(REGION_COLORS[d.rg]||'#64748b')}22;color:${REGION_COLORS[d.rg]||'#64748b'}">${d.rg}</span></td>
+  <td class="num">${d.perCap.toLocaleString()}</td>
+  <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:${(d.perCap/maxPC*100).toFixed(0)}%;background:linear-gradient(90deg,#f43f5e,#fb7185)"></div></div></td></tr>`).join('');
+
+// ═══════ § 7. SEOUL & GG ═══════
+const seoulCities = CITIES.filter(c=>c.rg==='서울').sort((a,b)=>b.amt-a.amt);
+const _seoulBar = new Chart(document.getElementById('seoulBar'), {
+  type:'bar',
+  data:{ labels:seoulCities.map(c=>c.nm), datasets:PRODUCTS.map((p,pi)=>({label:p.name, data:seoulCities.map(c=>c.prods[pi]), backgroundColor:p.color, borderRadius:2})) },
+  options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{position:'bottom', labels:{boxWidth:8, padding:8, font:{size:9}}},
+      tooltip:{...tooltipBase, callbacks:{label:ctx=>`  ${ctx.dataset.label}: ${ctx.parsed.x.toLocaleString()} M`}}},
+    scales:{ x:{stacked:true, grid:gridLight, ticks:{callback:v=>(v/1000).toFixed(0)+'B', font:{size:9}}},
+      y:{stacked:true, grid:gridNone, ticks:{font:{size:10}, color:'#a1adc7'}} }}
+});
+const ggCities = CITIES.filter(c=>c.rg==='경기').sort((a,b)=>b.amt-a.amt).slice(0,15);
+const _ggBar = new Chart(document.getElementById('ggBar'), {
+  type:'bar',
+  data:{ labels:ggCities.map(c=>c.nm), datasets:PRODUCTS.map((p,pi)=>({label:p.name, data:ggCities.map(c=>c.prods[pi]), backgroundColor:p.color, borderRadius:2})) },
+  options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{position:'bottom', labels:{boxWidth:8, padding:8, font:{size:9}}},
+      tooltip:{...tooltipBase, callbacks:{label:ctx=>`  ${ctx.dataset.label}: ${ctx.parsed.x.toLocaleString()} M`}}},
+    scales:{ x:{stacked:true, grid:gridLight, ticks:{callback:v=>(v/1000).toFixed(0)+'B', font:{size:9}}},
+      y:{stacked:true, grid:gridNone, ticks:{font:{size:10}, color:'#a1adc7'}} }}
+});
+window._charts.push(_regionAmt, _regionPerCap, _scatter, _seoulBar, _ggBar);
+
+// ═══════ § 8. 분포 (시·구 1인당 분포) ═══════
+const sgPerCap = CITIES.filter(c=>c.cnt>=20).map(c=>({pc:c.amt/c.cnt*100}));
+const distBins = [
+  { label:"~500만",     min:0, max:500, count:0 },
+  { label:"500~700만",  min:500, max:700, count:0 },
+  { label:"700~1,000만", min:700, max:1000, count:0 },
+  { label:"1,000~1,500만", min:1000, max:1500, count:0 },
+  { label:"1,500~2,500만", min:1500, max:2500, count:0 },
+  { label:"2,500만+",    min:2500, max:99999, count:0 },
+];
+sgPerCap.forEach(c => {
+  for (const b of distBins) {
+    if (c.pc >= b.min && c.pc < b.max) { b.count++; break; }
+  }
+});
+const distMax = Math.max(...distBins.map(b=>b.count));
+const distTotal = distBins.reduce((s,b)=>s+b.count,0);
+document.getElementById('histRow').innerHTML = distBins.map(b => {
+  const h = (b.count/distMax*100).toFixed(0);
+  const pct = (b.count/distTotal*100).toFixed(1);
+  return `<div class="hist-bar-wrap"><div class="hist-bar" style="height:${h}%"><span class="val">${b.count}곳</span><span class="pct">${pct}%</span></div><div class="hist-label">${b.label}</div></div>`;
+}).join('');
+
+// ═══════ § 9. 산업 인접도 ═══════
+const INDUSTRY_PROXIMITY = {
+  "화성시":95,"수원시":90,"이천시":92,"평택시":88,"청주시":85,
+  "용인시":75,"고양시":35,"성남시":55,"안양시":50,"부천시":45,
+  "강남구":30,"서초구":28,"송파구":35,"영등포구":40,"마포구":35,
+  "강서구":25,"양천구":25,"구로구":40,"관악구":18,"성동구":25,
+  "동작구":25,"광진구":20,"강동구":25,"성북구":20,"서대문구":18,
+  "은평구":15,"노원구":30,"용산구":20,"종로구":15,"동대문구":18,
+  "중랑구":15,"도봉구":15,"강북구":15,
+  "천안시":80,"아산시":75,"창원시":50,"김해시":40,"양산시":35,
+  "구미시":78,"포항시":50,"경산시":35,"진주시":25,
+  "전주시":30,"춘천시":35,"원주시":40,
+  "남양주시":30,"파주시":50,"김포시":40,"안산시":40,"시흥시":40,
+  "의정부시":20,"광명시":30,"과천시":25,"군포시":30,"하남시":25,
+  "유성구":70,"수성구":35,
+};
+const industryData = CITIES
+  .filter(c => INDUSTRY_PROXIMITY[c.nm] !== undefined && c.cnt >= 100)
+  .map(c => {
+    const kodexShare = c.amt > 0 ? (c.prods[0] / c.amt * 100) : 0;
+    return { x: INDUSTRY_PROXIMITY[c.nm], y: kodexShare, r: Math.max(4, Math.min(18, Math.round(c.amt/200))), nm: c.nm, rg: c.rg, amt: c.amt };
+  });
+const _industryScatter = new Chart(document.getElementById('industryScatter'), {
+  type:'bubble',
+  data:{ datasets: [{
+    label: '시·구', data: industryData,
+    backgroundColor: industryData.map(d => { if (d.x >= 70) return 'rgba(244,63,94,0.7)'; if (d.x >= 40) return 'rgba(251,191,36,0.7)'; return 'rgba(91,141,239,0.6)'; }),
+    borderColor: industryData.map(d => { if (d.x >= 70) return '#f43f5e'; if (d.x >= 40) return '#fbbf24'; return '#5b8def'; }),
+    borderWidth: 1.5,
+  }]},
+  options:{ responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:false},
+      tooltip:{...buildTooltipBase(), callbacks:{ label:ctx=>{const d=ctx.raw; return [`  ${d.nm} (${d.rg})`, `  산업 인접도: ${d.x}`, `  KODEX 반도체 비중: ${d.y.toFixed(1)}%`, `  AUM: ${d.amt.toLocaleString()}M`];}}}},
+    scales:{
+      x:{ grid:gridLight, title:{display:true, text:'반도체 산업 인접도 (추정 0~100)', color:_initColors.textMuted}, min:0, max:100 },
+      y:{ grid:gridLight, title:{display:true, text:'KODEX 반도체 비중 (%)', color:_initColors.textMuted}, min:0, max:50, ticks:{callback:v=>v+'%'} }
+    }}
+});
+window._charts.push(_industryScatter);
+
+// ═══════ § 10. 로렌츠 ═══════
+const sortedAsc = [...CITIES].sort((a,b)=>a.amt-b.amt);
+const totalAumAll = sortedAsc.reduce((s,c)=>s+c.amt, 0);
+let cumulPop = 0, cumulAum = 0;
+const lorenzPts = [{x:0, y:0}];
+sortedAsc.forEach(c => {
+  cumulPop += 1; cumulAum += c.amt;
+  lorenzPts.push({ x: cumulPop / sortedAsc.length * 100, y: cumulAum / totalAumAll * 100 });
+});
+let giniSum = 0;
+const arr = sortedAsc.map(c=>c.amt);
+const meanA = arr.reduce((s,v)=>s+v,0)/arr.length;
+for (let i=0;i<arr.length;i++) for (let j=0;j<arr.length;j++) giniSum += Math.abs(arr[i]-arr[j]);
+const gini = giniSum / (2*arr.length*arr.length*meanA);
+const top10pct = Math.ceil(sortedAsc.length*0.1);
+const top10aum = sortedAsc.slice(-top10pct).reduce((s,c)=>s+c.amt,0);
+const top10pctShare = (top10aum/totalAumAll*100).toFixed(1);
+
+const equalityLine = [{x:0,y:0},{x:100,y:100}];
+const _lorenz = new Chart(document.getElementById('lorenzChart'), {
+  type:'line',
+  data:{ datasets: [
+    { label:'완전 평등선', data:equalityLine, borderColor:'#94a3b8', borderWidth:1.5, borderDash:[6,4], pointRadius:0, fill:false, tension:0 },
+    { label:'실제 분포 (로렌츠)', data:lorenzPts, borderColor:'#f43f5e', backgroundColor:'rgba(244,63,94,0.18)', borderWidth:2.5, pointRadius:0, pointHoverRadius:5, fill:'origin', tension:0.3 }
+  ]},
+  options:{ responsive:true, maintainAspectRatio:false, parsing:false,
+    plugins:{ legend:{position:'bottom', labels:{boxWidth:12, padding:12, font:{size:11}}},
+      tooltip:{...buildTooltipBase(), callbacks:{label:ctx=>`  시·구 누적 ${ctx.parsed.x.toFixed(1)}% → AUM 누적 ${ctx.parsed.y.toFixed(1)}%`}}},
+    scales:{
+      x:{ type:'linear', grid:gridLight, title:{display:true, text:'시·구 누적 비율 (%)', color:_initColors.textMuted}, min:0, max:100, ticks:{callback:v=>v+'%'} },
+      y:{ grid:gridLight, title:{display:true, text:'AUM 누적 비율 (%)', color:_initColors.textMuted}, min:0, max:100, ticks:{callback:v=>v+'%'} }
+    }}
+});
+window._charts.push(_lorenz);
+document.getElementById('giniValue').textContent = gini.toFixed(2);
+document.getElementById('top10Value').textContent = top10pctShare + '%';
+
+// ═══════ § 11. 광역 편차 ═══════
+const regionGroups2 = {};
+CITIES.forEach(c => { if (!regionGroups2[c.rg]) regionGroups2[c.rg] = []; regionGroups2[c.rg].push(c); });
+const varianceRows = Object.entries(regionGroups2).map(([rg, list]) => {
+  if (list.length < 2) return null;
+  const amts = list.map(c => c.amt);
+  const mean = amts.reduce((s,v)=>s+v, 0) / amts.length;
+  const variance = amts.reduce((s,v)=>s+(v-mean)**2, 0) / amts.length;
+  const std = Math.sqrt(variance);
+  const cv = mean > 0 ? std / mean : 0;
+  return { rg, n:list.length, max: Math.max(...amts), min: Math.min(...amts), cv };
+}).filter(Boolean).sort((a,b) => b.cv - a.cv);
+const maxCV = Math.max(...varianceRows.map(r=>r.cv));
+document.getElementById('varianceTable').innerHTML = varianceRows.map((r,i) => {
+  const ratio = r.min > 0 ? (r.max/r.min).toFixed(0) + '×' : '∞';
+  const barW = (r.cv/maxCV*100).toFixed(0);
+  return `<tr>
+    <td class="rank">${String(i+1).padStart(2,'0')}</td>
+    <td><strong style="color:var(--text)">${r.rg}</strong></td>
+    <td class="num">${r.n}</td>
+    <td class="num">${(r.max/1000).toFixed(1)}</td>
+    <td class="num">${(r.min/1000).toFixed(2)}</td>
+    <td class="num" style="color:var(--accent-warm);font-weight:600">${ratio}</td>
+    <td class="num" style="font-weight:700">${r.cv.toFixed(2)}</td>
+    <td class="variance-bar-wrap"><div class="variance-bar"><div class="fill" style="width:${barW}%"></div></div></td>
+  </tr>`;
+}).join('');
+
+// ═══════ § 12. 지도 ═══════
+const REGION_AMT_MAP = {};
+REGIONS.forEach(r => REGION_AMT_MAP[r.name] = r);
+function getMapColor(amt) {
+  if (amt >= 100000) return '#1d3a8a';
+  if (amt >= 30000)  return '#2451d3';
+  if (amt >= 12000)  return '#5b8def';
+  if (amt >= 7000)   return '#93b9ff';
+  if (amt >= 4000)   return '#bcd0ee';
+  return '#dde7f7';
+}
+const tooltipEl = document.getElementById('mapTooltip');
+document.querySelectorAll('#koreaMap .map-region').forEach(el => {
+  const name = el.dataset.name;
+  const r = REGION_AMT_MAP[name];
+  if (!r) return;
+  el.setAttribute('fill', getMapColor(r.amt));
+  el.addEventListener('mousemove', (e) => {
+    const rect = document.querySelector('.map-svg-wrap').getBoundingClientRect();
+    tooltipEl.style.left = (e.clientX - rect.left + 14) + 'px';
+    tooltipEl.style.top = (e.clientY - rect.top - 10) + 'px';
+    tooltipEl.style.opacity = '1';
+    tooltipEl.innerHTML = `<div class="name">${r.name}</div><div class="row"><span>AUM</span><b>${r.amt.toLocaleString()} M</b></div><div class="row"><span>인원</span><b>${r.cnt.toLocaleString()}명</b></div><div class="row"><span>점유율</span><b>${(r.amt/TOTAL_AUM*100).toFixed(2)}%</b></div>`;
+  });
+  el.addEventListener('mouseleave', () => tooltipEl.style.opacity = '0');
+});
+
+// ═══════ § 13. 페어 비교 ═══════
+function renderPair() {
+  const li = parseInt(document.getElementById('pairLeft').value);
+  const ri = parseInt(document.getElementById('pairRight').value);
+  document.getElementById('pairHL').textContent = PRODUCTS[li].name;
+  document.getElementById('pairHR').textContent = PRODUCTS[ri].name;
+  const pairData = REGIONS.map(r => {
+    const arr = REGION_BY_PROD[r.name] || [0,0,0,0,0,0];
+    return { rg:r.name, l:arr[li], r:arr[ri] };
+  }).filter(d => d.l > 0 || d.r > 0).sort((a,b) => (b.l+b.r) - (a.l+a.r));
+  const maxVal = Math.max(...pairData.map(d => Math.max(d.l, d.r)));
+  document.getElementById('pairBars').innerHTML = pairData.map(d => {
+    const lW = (d.l/maxVal*100).toFixed(0);
+    const rW = (d.r/maxVal*100).toFixed(0);
+    return `<div class="pair-row">
+        <div class="val-r" style="text-align:left">${d.l>0 ? d.l.toLocaleString()+'M' : '—'}</div>
+        <div class="pair-bar-wrap" style="justify-content:center">
+          <div class="pair-bar-l" style="width:${lW/2}%; min-width:${d.l>0?'2px':'0'}">${d.l > maxVal*0.15 ? `<span class="pair-bar-val">${(d.l/1000).toFixed(0)}B</span>` : ''}</div>
+          <div class="pair-divider"></div>
+          <div class="pair-bar-r" style="width:${rW/2}%; min-width:${d.r>0?'2px':'0'}">${d.r > maxVal*0.15 ? `<span class="pair-bar-val">${(d.r/1000).toFixed(0)}B</span>` : ''}</div>
+        </div>
+        <div class="val-r"><strong style="color:var(--text)">${d.rg}</strong><br><span style="font-size:9px">${d.r>0 ? d.r.toLocaleString()+'M' : '—'}</span></div>
+      </div>`;
+  }).join('');
+}
+document.getElementById('pairLeft').addEventListener('change', renderPair);
+document.getElementById('pairRight').addEventListener('change', renderPair);
+renderPair();
+
+// ═══════════════════════════════════════════════════════════════
+// § 14. 연령 × 성별 매트릭스 (NEW)
+// ═══════════════════════════════════════════════════════════════
+function renderAgeSexMatrix(metric) {
+  const valFn = {
+    amt: d => d.amt,
+    cnt: d => d.cnt,
+    perCap: d => d.cnt > 0 ? Math.round(d.amt/d.cnt*100) : 0
+  }[metric];
+  const fmt = {
+    amt: v => v >= 1000 ? (v/1000).toFixed(1)+'B' : v + 'M',
+    cnt: v => v.toLocaleString() + '명',
+    perCap: v => v.toLocaleString() + '만원'
+  }[metric];
+  const allVals = AGE_ORDER.flatMap(age => ['남','여'].map(sex => valFn(AGE_SEX[age][sex])));
+  const maxV = Math.max(...allVals);
+
+  let html = '<div class="agesex-grid"><div class="agesex-cell head"></div><div class="agesex-cell head male">남성</div><div class="agesex-cell head female">여성</div>';
+  AGE_ORDER.forEach(age => {
+    html += `<div class="agesex-cell head row">${age}</div>`;
+    ['남','여'].forEach(sex => {
+      const v = valFn(AGE_SEX[age][sex]);
+      const ratio = maxV>0 ? v/maxV : 0;
+      const baseColor = sex === '남' ? '91,141,239' : '244,63,94';
+      const bg = `rgba(${baseColor}, ${0.15 + ratio*0.75})`;
+      const txtColor = ratio > 0.55 ? '#fff' : 'var(--text)';
+      html += `<div class="agesex-cell" style="background:${bg};color:${txtColor}"><div class="big">${fmt(v)}</div></div>`;
+    });
+  });
+  html += '</div>';
+  document.getElementById('ageSexMatrix').innerHTML = html;
+}
+renderAgeSexMatrix('perCap');
+document.querySelectorAll('#ageSexToggle .pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('#ageSexToggle .pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    renderAgeSexMatrix(pill.dataset.metric);
+  });
+});
+
+// ═══════ § 15. 종목 × 연령 ═══════
+const _prodAgeStack = new Chart(document.getElementById('prodAgeStack'), {
+  type:'bar',
+  data:{ labels: PRODUCTS.map(p => p.name),
+    datasets: AGE_ORDER.map((age, idx) => ({
+      label: age,
+      data: PRODUCTS.map(p => {
+        const ms = PROD_AGE_SEX[p.key][age];
+        return ms.남.amt + ms.여.amt;
+      }),
+      backgroundColor: ['#fbbf24','#fb923c','#f43f5e','#5b8def','#14b8a6'][idx],
+      borderRadius: 2
+    }))
+  },
+  options:{ responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{position:'bottom', labels:{boxWidth:12, padding:12, font:{size:11}}},
+      tooltip:{...buildTooltipBase(), callbacks:{label:ctx=>`  ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}M`}}},
+    scales:{
+      x:{ stacked:true, grid:gridNone, ticks:{font:{size:10}, color:'#a1adc7'} },
+      y:{ stacked:true, grid:gridLight, ticks:{callback:v=>(v/1000).toFixed(0)+'B'} }
+    }}
+});
+window._charts.push(_prodAgeStack);
+
+const _prodAgePerCap = new Chart(document.getElementById('prodAgePerCap'), {
+  type:'line',
+  data:{ labels: AGE_ORDER,
+    datasets: PRODUCTS.map(p => ({
+      label: p.name,
+      data: AGE_ORDER.map(age => {
+        const ms = PROD_AGE_SEX[p.key][age];
+        const totalAmt = ms.남.amt + ms.여.amt;
+        const totalCnt = ms.남.cnt + ms.여.cnt;
+        return totalCnt > 0 ? Math.round(totalAmt/totalCnt*100) : 0;
+      }),
+      borderColor: p.color,
+      backgroundColor: p.color + '33',
+      borderWidth: 2.5,
+      pointRadius: 4,
+      pointHoverRadius: 7,
+      tension: 0.3
+    }))
+  },
+  options:{ responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{position:'bottom', labels:{boxWidth:10, padding:10, font:{size:10}}},
+      tooltip:{...buildTooltipBase(), callbacks:{label:ctx=>`  ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}만원`}}},
+    scales:{
+      x:{ grid:gridNone, ticks:{font:{size:11}} },
+      y:{ grid:gridLight, ticks:{callback:v=>v.toLocaleString()+'만'} }
+    }}
+});
+window._charts.push(_prodAgePerCap);
+
+// ═══════ § 16. 종목 × 성별 편향 ═══════
+let sexBiasHTML = '<div class="sexbias-list">';
+PRODUCTS.forEach(p => {
+  let mAmt=0, fAmt=0, mCnt=0, fCnt=0;
+  AGE_ORDER.forEach(age => {
+    mAmt += PROD_AGE_SEX[p.key][age]['남'].amt;
+    fAmt += PROD_AGE_SEX[p.key][age]['여'].amt;
+    mCnt += PROD_AGE_SEX[p.key][age]['남'].cnt;
+    fCnt += PROD_AGE_SEX[p.key][age]['여'].cnt;
+  });
+  const totalAmt = mAmt + fAmt;
+  if (totalAmt === 0) return;
+  const mPct = (mAmt/totalAmt*100).toFixed(1);
+  const fPct = (fAmt/totalAmt*100).toFixed(1);
+  const isLev = p.name.includes('레버리지');
+  sexBiasHTML += `<div class="sexbias-row">
+      <div class="sexbias-name"><span class="prod-dot" style="background:${p.color}"></span>${p.name}${isLev ? '<span class="lev-tag">LEV</span>' : ''}</div>
+      <div class="sexbias-bar">
+        <div class="sb-male" style="width:${mPct}%">${mPct}%</div>
+        <div class="sb-female" style="width:${fPct}%">${fPct}%</div>
+      </div>
+      <div class="sexbias-meta">남 ${mCnt.toLocaleString()} · 여 ${fCnt.toLocaleString()}</div>
+    </div>`;
+});
+sexBiasHTML += '</div>';
+document.getElementById('sexBiasChart').innerHTML = sexBiasHTML;
+
+// ═══════ § 17. VVIP 풀 ═══════
+const VVIP_data = REGIONS.map(r => {
+  const lev1 = REGION_BY_PROD[r.name][1];
+  const lev2 = REGION_BY_PROD[r.name][5];
+  const sas = SIDO_AGE_SEX[r.name];
+  if (!sas) return null;
+  const sn = sas['60대이상']['남'];
+  const sf = sas['60대이상']['여'];
+  return { rg:r.name, lev:lev1+lev2, senior:sn.amt+sf.amt, seniorCnt:sn.cnt+sf.cnt };
+}).filter(d => d && d.lev > 100).sort((a,b) => b.lev - a.lev).slice(0, 10);
+
+const vvipMaxLev = Math.max(...VVIP_data.map(d=>d.lev));
+let vvipHTML = '<table class="tbl"><thead><tr><th>#</th><th>광역</th><th class="num">레버리지 합계</th><th class="num">60대+ 인원</th><th class="num">60대+ AUM</th><th>레버리지 강도</th></tr></thead><tbody>';
+VVIP_data.forEach((d,i) => {
+  const w = (d.lev/vvipMaxLev*100).toFixed(0);
+  vvipHTML += `<tr>
+    <td class="rank">${String(i+1).padStart(2,'0')}</td>
+    <td><strong style="color:var(--text)">${d.rg}</strong></td>
+    <td class="num">${(d.lev/1000).toFixed(1)}B</td>
+    <td class="num">${d.seniorCnt.toLocaleString()}명</td>
+    <td class="num">${(d.senior/1000).toFixed(1)}B</td>
+    <td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:${w}%;background:linear-gradient(90deg,#f43f5e,#fbbf24)"></div></div></td>
+  </tr>`;
+});
+vvipHTML += '</tbody></table>';
+document.getElementById('vvipTable').innerHTML = vvipHTML;
+
+const vvipP1 = PROD_AGE_SEX['p1']['60대이상'];
+const vvipPerCap_M = vvipP1['남'].cnt > 0 ? Math.round(vvipP1['남'].amt/vvipP1['남'].cnt*100) : 0;
+const vvipPerCap_F = vvipP1['여'].cnt > 0 ? Math.round(vvipP1['여'].amt/vvipP1['여'].cnt*100) : 0;
+document.getElementById('vvipMaleAvg').textContent = (vvipPerCap_M/10000).toFixed(2) + '억';
+document.getElementById('vvipFemaleAvg').textContent = (vvipPerCap_F/10000).toFixed(2) + '억';
+document.getElementById('vvipTotalCnt').textContent = (vvipP1['남'].cnt + vvipP1['여'].cnt) + '명';
+
+// ═══════ § 18. 20대 여성 신규 풀 ═══════
+const FEMALE20_data = REGIONS.map(r => {
+  const sas = SIDO_AGE_SEX[r.name];
+  if (!sas) return null;
+  const f20 = sas['20대']['여'];
+  return { rg:r.name, amt:f20.amt, cnt:f20.cnt, perCap: f20.cnt>0 ? Math.round(f20.amt/f20.cnt*100) : 0 };
+}).filter(d=>d && d.cnt>0).sort((a,b) => b.cnt - a.cnt);
+
+const f20MaxCnt = Math.max(...FEMALE20_data.map(d=>d.cnt));
+let f20HTML = '';
+FEMALE20_data.forEach((d,i) => {
+  const w = (d.cnt/f20MaxCnt*100).toFixed(0);
+  f20HTML += `<div class="f20-row">
+      <div class="f20-rank">${String(i+1).padStart(2,'0')}</div>
+      <div class="f20-name">${d.rg}</div>
+      <div class="f20-bar"><div class="f20-fill" style="width:${w}%"></div></div>
+      <div class="f20-stat"><b>${d.cnt}</b>명 · <span class="muted">${d.perCap}만</span></div>
+    </div>`;
+});
+document.getElementById('f20Section').innerHTML = f20HTML;
+
+const f20Total = AGE_SEX['20대']['여'];
+const totalWomen = Object.values(AGE_SEX).reduce((s,o)=>s+o['여'].cnt,0);
+document.getElementById('f20TotalCnt').textContent = f20Total.cnt.toLocaleString() + '명';
+document.getElementById('f20PerCap').textContent = Math.round(f20Total.amt/f20Total.cnt*100) + '만';
+document.getElementById('f20PctOfWomen').textContent = (f20Total.cnt / totalWomen * 100).toFixed(1) + '%';
+
+// ═══════ § 19. 시·도 × 연령 매트릭스 ═══════
+const sidoAgeMaxPerCap = (() => {
+  let mx = 0;
+  Object.values(SIDO_AGE_SEX).forEach(s => {
+    AGE_ORDER.forEach(age => {
+      const v = s[age]['남'].amt + s[age]['여'].amt;
+      const c = s[age]['남'].cnt + s[age]['여'].cnt;
+      if (c > 0) mx = Math.max(mx, v/c*100);
+    });
+  });
+  return mx;
+})();
+
+let sidoAgeHTML = '<div class="sidoage-grid"><div class="sa-cell head"></div>';
+AGE_ORDER.forEach(age => sidoAgeHTML += `<div class="sa-cell head">${age}</div>`);
+const orderedSido = REGIONS.map(r => r.name);
+orderedSido.forEach(rg => {
+  sidoAgeHTML += `<div class="sa-cell head row">${rg}</div>`;
+  AGE_ORDER.forEach(age => {
+    const s = SIDO_AGE_SEX[rg];
+    if (!s) { sidoAgeHTML += '<div class="sa-cell empty">—</div>'; return; }
+    const a = s[age]['남'].amt + s[age]['여'].amt;
+    const c = s[age]['남'].cnt + s[age]['여'].cnt;
+    if (c === 0) { sidoAgeHTML += '<div class="sa-cell empty">—</div>'; return; }
+    const pc = Math.round(a/c*100);
+    const ratio = pc / sidoAgeMaxPerCap;
+    const bg = `rgba(91,141,239,${0.1 + ratio*0.75})`;
+    const txt = ratio > 0.55 ? '#fff' : 'var(--text)';
+    sidoAgeHTML += `<div class="sa-cell" style="background:${bg};color:${txt}" title="${rg} · ${age}: 1인당 ${pc}만 (${c}명)">${pc}만</div>`;
+  });
+});
+sidoAgeHTML += '</div>';
+document.getElementById('sidoAgeMatrix').innerHTML = sidoAgeHTML;
+
+// ═══════════════════════════════════════════════════════════════
+// § 20. 라이프사이클 객단가 진화 곡선
+// ═══════════════════════════════════════════════════════════════
+const malePerCapByAge = AGE_ORDER.map(age => {
+  const m = AGE_SEX[age]['남'];
+  return m.cnt > 0 ? Math.round(m.amt/m.cnt*100) : 0;
+});
+const femalePerCapByAge = AGE_ORDER.map(age => {
+  const f = AGE_SEX[age]['여'];
+  return f.cnt > 0 ? Math.round(f.amt/f.cnt*100) : 0;
+});
+
+const _lifecycle = new Chart(document.getElementById('lifecycleChart'), {
+  type:'line',
+  data:{ labels: AGE_ORDER,
+    datasets: [
+      { label:'남성 1인당', data: malePerCapByAge, borderColor:'#5b8def', backgroundColor:'rgba(91,141,239,0.15)', borderWidth:3, pointRadius:6, pointHoverRadius:9, fill:true, tension:0.35 },
+      { label:'여성 1인당', data: femalePerCapByAge, borderColor:'#f43f5e', backgroundColor:'rgba(244,63,94,0.15)', borderWidth:3, pointRadius:6, pointHoverRadius:9, fill:true, tension:0.35 },
+    ]
+  },
+  options:{ responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{position:'bottom', labels:{boxWidth:12, padding:14, font:{size:12, weight:600}}},
+      tooltip:{...buildTooltipBase(), callbacks:{label:ctx=>`  ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}만원`}}},
+    scales:{
+      x:{ grid:gridNone, ticks:{font:{size:12, weight:600}} },
+      y:{ grid:gridLight, ticks:{callback:v=>v.toLocaleString()+'만'}, title:{display:true, text:'1인당 보유액 (만원)', color:_initColors.textMuted} }
+    }}
+});
+window._charts.push(_lifecycle);
+
+// 진화 비율 동적 갱신
+const maleStart = malePerCapByAge[0] || 1;
+const maleEnd = malePerCapByAge[malePerCapByAge.length-1];
+document.getElementById('maleProg').textContent = `${(maleEnd/maleStart).toFixed(1)}배 증가`;
+const femaleStart = femalePerCapByAge[0] || 1;
+const femaleEnd = femalePerCapByAge[femalePerCapByAge.length-1];
+document.getElementById('femaleProg').textContent = `${(femaleEnd/femaleStart).toFixed(1)}배 증가`;
+
+// ═══════════════════════════════════════════════════════════════
+// § 21. 세그먼트 트리맵
+// ═══════════════════════════════════════════════════════════════
+const segments = [];
+AGE_ORDER.forEach(age => {
+  ['남','여'].forEach(sex => {
+    const d = AGE_SEX[age][sex];
+    segments.push({ name: `${age} ${sex}`, age, sex, amt: d.amt, cnt: d.cnt, pct: d.amt/TOTAL_AUM*100 });
+  });
+});
+segments.sort((a,b) => b.amt - a.amt);
+
+// 간단한 트리맵 (squarified 비스무리하게 grid + colspan/rowspan으로 흉내)
+let tmHTML = '<div class="treemap-wrap" id="tmInner">';
+const totalUnits = 30; // 10x3 그리드
+const totalAmt = segments.reduce((s,d)=>s+d.amt, 0);
+let usedCols = 0;
+const tmCells = [];
+segments.forEach(d => {
+  // 면적 비례 → cell 수
+  const cells = Math.max(1, Math.round(d.pct / 100 * totalUnits));
+  tmCells.push({...d, cells});
+});
+// 색상 매핑: 남=blue/cyan, 여=rose/pink, 강도는 객단가
+const sexColors = {
+  '남': ['#1e3a8a','#1e40af','#2451d3','#5b8def','#7da9f5','#a4c2f4'],
+  '여': ['#831843','#9d174d','#be185d','#e11d48','#f43f5e','#fb7185']
+};
+// 일단 순위대로 색상 진하게 → 옅게
+let sortedByAge = AGE_ORDER.flatMap(a => ['남','여'].map(s => ({age:a, sex:s})));
+const ageIntensity = {'20대':5, '30대':3, '40대':2, '50대':1, '60대이상':0};
+
+tmCells.forEach(d => {
+  const intensity = ageIntensity[d.age];
+  const bg = sexColors[d.sex][intensity];
+  // 면적 흉내내기 위해 grid-column span
+  const colspan = Math.min(d.cells, 10);
+  tmHTML += `<div class="tm-cell" style="background:${bg};grid-column:span ${colspan};" title="${d.name}: ${(d.amt/1000).toFixed(1)}B (${d.pct.toFixed(1)}%)">
+    <div class="seg-name">${d.age}<br>${d.sex}</div>
+    <div class="seg-val">${d.pct.toFixed(1)}%</div>
+    <div class="seg-sub">${(d.amt/1000).toFixed(1)}B · ${d.cnt.toLocaleString()}명</div>
+  </div>`;
+});
+tmHTML += '</div>';
+document.getElementById('treemapWrap').innerHTML = tmHTML;
+
+// ═══════════════════════════════════════════════════════════════
+// § 22. 종목 선호도 인덱스 (PI)
+// ═══════════════════════════════════════════════════════════════
+// 전체 평균 비중
+let totalMaleAmt = 0, totalFemaleAmt = 0;
+AGE_ORDER.forEach(age => {
+  totalMaleAmt += AGE_SEX[age]['남'].amt;
+  totalFemaleAmt += AGE_SEX[age]['여'].amt;
+});
+const totalAllAmt = totalMaleAmt + totalFemaleAmt;
+const avgMaleShare = totalMaleAmt / totalAllAmt; // 약 0.654
+const avgFemaleShare = totalFemaleAmt / totalAllAmt; // 약 0.346
+
+let prefHTML = '<div class="pref-grid head"><div class="h-c">종목</div><div class="h-c male">남성 PI</div><div class="h-c female">여성 PI</div></div>';
+PRODUCTS.forEach(p => {
+  let mAmt = 0, fAmt = 0;
+  AGE_ORDER.forEach(age => {
+    mAmt += PROD_AGE_SEX[p.key][age]['남'].amt;
+    fAmt += PROD_AGE_SEX[p.key][age]['여'].amt;
+  });
+  const t = mAmt + fAmt;
+  if (t === 0) return;
+  const mShare = mAmt / t;
+  const fShare = fAmt / t;
+  const mPI = mShare / avgMaleShare;
+  const fPI = fShare / avgFemaleShare;
+  const piClass = (v) => v >= 1.2 ? 'high' : (v <= 0.8 ? 'low' : 'mid');
+  // bar width: PI 값을 0~2 범위로 가정해 100% 기준
+  const mBar = Math.min(100, mPI * 50);
+  const fBar = Math.min(100, fPI * 50);
+  prefHTML += `<div class="pref-grid">
+    <div class="pref-name"><span class="prod-dot" style="background:${p.color}"></span>${p.name}</div>
+    <div class="pref-bar-cell"><div class="pref-bar"><div class="pref-fill male" style="width:${mBar}%"></div></div><span class="pref-idx ${piClass(mPI)}">${mPI.toFixed(2)}</span></div>
+    <div class="pref-bar-cell"><div class="pref-bar"><div class="pref-fill female" style="width:${fBar}%"></div></div><span class="pref-idx ${piClass(fPI)}">${fPI.toFixed(2)}</span></div>
+  </div>`;
+});
+document.getElementById('prefIndexBlock').innerHTML = prefHTML;
+
+  } catch(e) {
+    console.error('Chart rendering error:', e);
+    document.querySelectorAll('canvas').forEach(c => {
+      const wrap = c.closest('.chart-wrap');
+      if (wrap) wrap.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6b7894;font-family:monospace;font-size:11px;">⚠ 차트 로딩 오류 — 콘솔 확인 필요</div>';
+    });
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initCharts);
+} else {
+  initCharts();
+}
+</script>
+</body>
+</html>

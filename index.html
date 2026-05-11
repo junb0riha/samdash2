@@ -15,6 +15,78 @@
 </head>
 <body>
 
+<!-- 🔒 PASSWORD GATE -->
+<div id="pwGate" style="position:fixed;inset:0;background:#07090f;z-index:99999;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Sans KR',sans-serif;">
+  <div style="background:linear-gradient(135deg,#11151f 0%,#161c2a 100%);border:1px solid #1f2940;border-radius:16px;padding:48px 44px;max-width:440px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+    <div style="width:56px;height:56px;background:linear-gradient(135deg,#5b8def,#fb923c);border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:18px;color:#fff;margin:0 auto 20px;box-shadow:0 8px 24px rgba(91,141,239,0.3);">SAM</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:#5b8def;margin-bottom:12px;">◆ AUTHORIZATION REQUIRED</div>
+    <h2 style="font-family:'Noto Serif KR',serif;font-size:22px;font-weight:700;color:#fff;margin-bottom:8px;letter-spacing:-0.5px;">SAM ETF Intelligence</h2>
+    <p style="font-size:13px;color:#a1adc7;margin-bottom:28px;line-height:1.6;">접근 권한이 있는 사용자만<br>대시보드를 열람할 수 있습니다.</p>
+    <form id="pwForm" autocomplete="off">
+      <input type="password" id="pwInput" placeholder="비밀번호 입력" autofocus
+        style="width:100%;padding:14px 16px;background:#0c1018;border:1px solid #2c3a5a;border-radius:8px;color:#e5edff;font-size:14px;font-family:inherit;text-align:center;letter-spacing:0.5px;outline:none;transition:border-color 0.2s;"
+        onfocus="this.style.borderColor='#5b8def'" onblur="this.style.borderColor='#2c3a5a'" />
+      <div id="pwError" style="color:#f43f5e;font-size:12px;margin-top:10px;min-height:18px;font-family:'JetBrains Mono',monospace;letter-spacing:0.3px;"></div>
+      <button type="submit"
+        style="width:100%;margin-top:16px;padding:13px;background:linear-gradient(135deg,#5b8def,#2451d3);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;letter-spacing:0.3px;transition:transform 0.1s;"
+        onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform=''">
+        ACCESS DASHBOARD →
+      </button>
+    </form>
+    <div style="margin-top:24px;padding-top:20px;border-top:1px solid #1f2940;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1.2px;color:#4a5572;">
+      SAMSUNG ASSET MANAGEMENT · ETF PLANNING TEAM<br>
+      CONFIDENTIAL · INTERNAL USE ONLY
+    </div>
+  </div>
+</div>
+
+<script>
+// 🔒 비밀번호 게이트 — SHA-256 해시 비교
+(function() {
+  const PW_HASH = '573e38c05331d89857e38ad8b200877f749829c0da3c00975bca7b098e862122';
+  const SESSION_KEY = 'sam-etf-auth';
+
+  // 이미 인증된 세션이면 게이트 즉시 제거
+  if (sessionStorage.getItem(SESSION_KEY) === 'ok') {
+    document.getElementById('pwGate').remove();
+    return;
+  }
+
+  // 페이지 스크롤 잠금
+  document.body.style.overflow = 'hidden';
+
+  async function sha256(text) {
+    const buf = new TextEncoder().encode(text);
+    const hash = await crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  document.getElementById('pwForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('pwInput').value;
+    const errEl = document.getElementById('pwError');
+    errEl.textContent = '';
+
+    if (!input) { errEl.textContent = '⚠ 비밀번호를 입력하세요'; return; }
+
+    const hash = await sha256(input);
+    if (hash === PW_HASH) {
+      sessionStorage.setItem(SESSION_KEY, 'ok');
+      document.getElementById('pwGate').style.transition = 'opacity 0.3s';
+      document.getElementById('pwGate').style.opacity = '0';
+      setTimeout(() => {
+        document.getElementById('pwGate').remove();
+        document.body.style.overflow = '';
+      }, 300);
+    } else {
+      errEl.textContent = '⚠ 비밀번호가 일치하지 않습니다';
+      document.getElementById('pwInput').value = '';
+      document.getElementById('pwInput').focus();
+    }
+  });
+})();
+</script>
+
 <!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-inner">
